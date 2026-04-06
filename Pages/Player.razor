@@ -1,0 +1,86 @@
+@page "/player/{Slug}"
+@using DiamondMechanics.Models
+@using DiamondMechanics.Components
+@inject DiamondMechanics.Services.PlayerLibraryService PlayerLibrary
+
+<PageTitle>@(_player?.Name ?? "Player Breakdown")</PageTitle>
+
+@if (_player is null)
+{
+    <div class="page-shell">
+        <p>Loading player...</p>
+    </div>
+}
+else
+{
+    <div class="page-shell">
+        <section class="player-hero">
+            <div class="player-hero-left">
+                <div class="eyebrow">@_player.Level · @_player.Sport · @_player.Category</div>
+                <h1>@_player.Name</h1>
+                <p class="player-submeta">@_player.TeamOrSchool · @_player.Position · @_player.ThrowsOrBats</p>
+                <p class="player-overview">@_player.Overview</p>
+            </div>
+        </section>
+
+        <section class="section analysis-layout">
+            <div class="analysis-main">
+                <VideoAnalysisPanel VideoUrl="@_player.VideoUrl" SelectedPhase="@_selectedPhase" />
+            </div>
+
+            <aside class="analysis-sidebar">
+                <div class="sidebar-card">
+                    <h3>Movement Timeline</h3>
+                    <PhaseTimeline Phases="@_player.Phases"
+                                   SelectedPhase="@_selectedPhase"
+                                   SelectedPhaseChanged="OnPhaseChanged" />
+                </div>
+
+                <div class="sidebar-card">
+                    <h3>Ideal Checkpoints</h3>
+                    @if (_selectedPhase is not null)
+                    {
+                        <ul class="checkpoint-list">
+                            @foreach (var point in _selectedPhase.CoachingPoints)
+                            {
+                                <li>
+                                    <strong>@point.Title:</strong> @point.Detail
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+
+                <div class="sidebar-card">
+                    <h3>Future Expansion</h3>
+                    <ul class="feature-list">
+                        <li>Upload your own swing</li>
+                        <li>Side-by-side synced comparison</li>
+                        <li>Body landmark overlays</li>
+                        <li>Auto drill recommendations</li>
+                    </ul>
+                </div>
+            </aside>
+        </section>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string Slug { get; set; } = string.Empty;
+
+    private PlayerProfile? _player;
+    private MechanicsPhase? _selectedPhase;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _player = await PlayerLibrary.GetPlayerBySlugAsync(Slug);
+        _selectedPhase = _player?.Phases.FirstOrDefault();
+    }
+
+    private Task OnPhaseChanged(MechanicsPhase phase)
+    {
+        _selectedPhase = phase;
+        return Task.CompletedTask;
+    }
+}

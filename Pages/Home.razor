@@ -1,0 +1,49 @@
+@page "/"
+@using DiamondMechanics.Models
+@using DiamondMechanics.Components
+@inject DiamondMechanics.Services.PlayerLibraryService PlayerLibrary
+
+<PageTitle>Diamond Mechanics</PageTitle>
+
+<div class="page-shell">
+    <section class="hero">
+        <div>
+            <div class="eyebrow">Baseball + Softball Mechanics</div>
+            <h1>Learn elite swings and pitching mechanics step by step.</h1>
+            <p>
+                Study pro and college movements phase by phase with slow-motion breakdowns,
+                coaching cues, and future-ready comparison tools.
+            </p>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="section-header">
+            <h2>Featured Breakdowns</h2>
+            <p>Start with a pro mechanics page, then expand into user comparison later.</p>
+        </div>
+
+        @if (_players.Count == 0)
+        {
+            <p>Loading players...</p>
+        }
+        else
+        {
+            <div class="player-grid">
+                @foreach (var player in _players)
+                {
+                    <PlayerCard Player="player" />
+                }
+            </div>
+        }
+    </section>
+</div>
+
+@code {
+    private List<PlayerProfile> _players = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _players = await PlayerLibrary.GetPlayersAsync();
+    }
+}

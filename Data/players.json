@@ -1,0 +1,135 @@
+[
+  {
+    "slug": "mike-trout-swing",
+    "name": "Mike Trout",
+    "sport": "Baseball",
+    "category": "Hitting",
+    "level": "Pro",
+    "teamOrSchool": "MLB",
+    "position": "Outfield",
+    "throwsOrBats": "R/R",
+    "heroImageUrl": "https://images.unsplash.com/photo-1518604666860-9ed391f76460?auto=format&fit=crop&w=1200&q=80",
+    "videoUrl": "/videos/mike-trout-swing.mp4",
+    "overview": "A compact, explosive swing built around balance, controlled load, efficient rotation, and strong connection through contact.",
+    "phases": [
+      {
+        "id": "stance",
+        "name": "Stance + Setup",
+        "startSeconds": 0.0,
+        "endSeconds": 1.0,
+        "summary": "Athletic posture, controlled hand set, quiet head, and a balanced base before movement begins.",
+        "coachingPoints": [
+          {
+            "title": "Base",
+            "detail": "Feet are under control, allowing force to move into the ground without drifting."
+          },
+          {
+            "title": "Hands",
+            "detail": "Hands are set in a position that reduces unnecessary pre-swing movement."
+          },
+          {
+            "title": "Posture",
+            "detail": "Chest angle and spine position support both adjustability and power."
+          }
+        ]
+      },
+      {
+        "id": "load",
+        "name": "Load + Gather",
+        "startSeconds": 1.0,
+        "endSeconds": 2.1,
+        "summary": "The body gathers inward while staying centered, preparing the lower half to launch.",
+        "coachingPoints": [
+          {
+            "title": "Rhythm",
+            "detail": "The move is smooth, not rushed, keeping the hitter synced with timing."
+          },
+          {
+            "title": "Center of Mass",
+            "detail": "The gather stays controlled without collapsing or drifting too far back."
+          },
+          {
+            "title": "Separation",
+            "detail": "Upper and lower body begin creating tension that can be released into the swing."
+          }
+        ]
+      },
+      {
+        "id": "stride",
+        "name": "Stride + Move Forward",
+        "startSeconds": 2.1,
+        "endSeconds": 3.0,
+        "summary": "The stride is controlled and directional, helping timing while preserving balance.",
+        "coachingPoints": [
+          {
+            "title": "Direction",
+            "detail": "Front foot lands under control, keeping the move linear and efficient."
+          },
+          {
+            "title": "Tempo",
+            "detail": "The stride works with the pitch, not against it."
+          }
+        ]
+      },
+      {
+        "id": "launch",
+        "name": "Launch + Rotation",
+        "startSeconds": 3.0,
+        "endSeconds": 3.8,
+        "summary": "Lower half begins turning, torso follows, and the barrel enters the zone efficiently.",
+        "coachingPoints": [
+          {
+            "title": "Hip Rotation",
+            "detail": "Hips fire first, helping sequence the swing from ground-up."
+          },
+          {
+            "title": "Connection",
+            "detail": "The body stays connected so the hands and barrel work with the turn."
+          },
+          {
+            "title": "Bat Path",
+            "detail": "The barrel enters the zone early enough to stay through contact."
+          }
+        ]
+      },
+      {
+        "id": "contact",
+        "name": "Contact",
+        "startSeconds": 3.8,
+        "endSeconds": 4.2,
+        "summary": "Stable head, strong front side, and efficient transfer of force into the ball.",
+        "coachingPoints": [
+          {
+            "title": "Head Stability",
+            "detail": "The eyes stay quiet, helping visual accuracy at contact."
+          },
+          {
+            "title": "Front Side",
+            "detail": "Firm front side helps stop linear drift and transfer energy into rotation."
+          },
+          {
+            "title": "Barrel Accuracy",
+            "detail": "The barrel meets the ball with adjustability and authority."
+          }
+        ]
+      },
+      {
+        "id": "finish",
+        "name": "Extension + Finish",
+        "startSeconds": 4.2,
+        "endSeconds": 5.2,
+        "summary": "The swing continues naturally through the zone before decelerating in balance.",
+        "coachingPoints": [
+          {
+            "title": "Extension",
+            "detail": "The hitter releases through the ball instead of cutting the swing off early."
+          },
+          {
+            "title": "Finish Balance",
+            "detail": "Balanced finish suggests good sequence and body control."
+          }
+        ]
+      }
+    ]
+  }
+]

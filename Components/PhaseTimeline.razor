@@ -1,0 +1,29 @@
+@using DiamondMechanics.Models
+
+<div class="phase-timeline">
+    @foreach (var phase in Phases)
+    {
+        <button class="phase-pill @(SelectedPhase?.Id == phase.Id ? "active" : "")"
+                @onclick="() => SelectPhase(phase)">
+            <span class="phase-pill-name">@phase.Name</span>
+            <span class="phase-pill-time">@phase.StartSeconds.ToString("0.0")s - @phase.EndSeconds.ToString("0.0")s</span>
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public List<MechanicsPhase> Phases { get; set; } = [];
+
+    [Parameter]
+    public MechanicsPhase? SelectedPhase { get; set; }
+
+    [Parameter]
+    public EventCallback<MechanicsPhase> SelectedPhaseChanged { get; set; }
+
+    private async Task SelectPhase(MechanicsPhase phase)
+    {
+        SelectedPhase = phase;
+        await SelectedPhaseChanged.InvokeAsync(phase);
+    }
+}

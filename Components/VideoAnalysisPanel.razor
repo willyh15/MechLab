@@ -1,0 +1,38 @@
+@using DiamondMechanics.Models
+@rendermode InteractiveServer
+
+<div class="analysis-panel">
+    <div class="video-shell">
+        <video class="training-video" controls preload="metadata" poster="">
+            <source src="@VideoUrl" type="video/mp4" />
+            Your browser does not support the video tag.
+        </video>
+    </div>
+
+    @if (SelectedPhase is not null)
+    {
+        <div class="phase-details">
+            <div class="phase-label">Current Focus</div>
+            <h2>@SelectedPhase.Name</h2>
+            <p class="phase-summary">@SelectedPhase.Summary</p>
+
+            <div class="checkpoint-grid">
+                @foreach (var point in SelectedPhase.CoachingPoints)
+                {
+                    <div class="checkpoint-card">
+                        <h4>@point.Title</h4>
+                        <p>@point.Detail</p>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string VideoUrl { get; set; } = string.Empty;
+
+    [Parameter]
+    public MechanicsPhase? SelectedPhase { get; set; }
+}

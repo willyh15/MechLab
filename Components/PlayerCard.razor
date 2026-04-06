@@ -1,0 +1,22 @@
+@using DiamondMechanics.Models
+@inject NavigationManager Nav
+
+<div class="player-card" @onclick="OpenPlayer">
+    <div class="player-card-image" style="background-image:url('@Player.HeroImageUrl')"></div>
+    <div class="player-card-body">
+        <div class="player-card-meta">@Player.Level · @Player.Sport · @Player.Category</div>
+        <h3>@Player.Name</h3>
+        <p>@Player.TeamOrSchool · @Player.Position · @Player.ThrowsOrBats</p>
+        <p class="player-card-overview">@Player.Overview</p>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public PlayerProfile Player { get; set; } = default!;
+
+    private void OpenPlayer()
+    {
+        Nav.NavigateTo($"/player/{Player.Slug}");
+    }
+}
