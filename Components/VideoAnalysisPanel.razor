@@ -3,7 +3,7 @@
 
 <div class="analysis-panel">
     <div class="video-shell">
-        <video class="training-video" controls preload="metadata" poster="">
+        <video id="@VideoElementId" class="training-video" controls preload="metadata">
             <source src="@VideoUrl" type="video/mp4" />
             Your browser does not support the video tag.
         </video>
@@ -11,28 +11,103 @@
 
     @if (SelectedPhase is not null)
     {
-        <div class="phase-details">
-            <div class="phase-label">Current Focus</div>
-            <h2>@SelectedPhase.Name</h2>
-            <p class="phase-summary">@SelectedPhase.Summary</p>
+        <div class="phase-toolbar">
+            <div class="phase-toolbar-left">
+                <div class="phase-label">Current Focus</div>
+                <h2>@SelectedPhase.Name</h2>
+                <p class="phase-summary">@SelectedPhase.Summary</p>
+            </div>
 
-            <div class="checkpoint-grid">
-                @foreach (var point in SelectedPhase.CoachingPoints)
+            <div class="phase-jump-actions">
+                <button class="jump-btn" @onclick="JumpToCurrentStart">Jump to Start</button>
+                <button class="jump-btn secondary" @onclick="JumpToCurrentEnd">Jump to End</button>
+            </div>
+        </div>
+
+        <div class="selected-phase-meta">
+            <div class="meta-chip">
+                <span>Start</span>
+                <strong>@SelectedPhase.StartSeconds.ToString("0.0")s</strong>
+            </div>
+            <div class="meta-chip">
+                <span>End</span>
+                <strong>@SelectedPhase.EndSeconds.ToString("0.0")s</strong>
+            </div>
+            <div class="meta-chip">
+                <span>Duration</span>
+                <strong>@SelectedPhase.DurationSeconds.ToString("0.0")s</strong>
+            </div>
+        </div>
+
+        @if (AllPhases.Count > 0)
+        {
+            <div class="frame-strip">
+                @foreach (var phase in AllPhases)
                 {
-                    <div class="checkpoint-card">
-                        <h4>@point.Title</h4>
-                        <p>@point.Detail</p>
-                    </div>
+                    <button class="frame-card @(SelectedPhase.Id == phase.Id ? "active" : "")"
+                            @onclick="() => OnJumpRequested.InvokeAsync(phase)">
+                        @if (!string.IsNullOrWhiteSpace(phase.ThumbnailUrl))
+                        {
+                            <img src="@phase.ThumbnailUrl" alt="@phase.Name" />
+                        }
+                        else
+                        {
+                            <div class="frame-card-fallback">@phase.Name</div>
+                        }
+
+                        <div class="frame-card-copy">
+                            <span class="frame-card-title">@phase.Name</span>
+                            <span class="frame-card-time">@phase.StartSeconds.ToString("0.0")s</span>
+                        </div>
+                    </button>
                 }
             </div>
+        }
+
+        <div class="checkpoint-grid">
+            @foreach (var point in SelectedPhase.CoachingPoints)
+            {
+                <div class="checkpoint-card">
+                    <h4>@point.Title</h4>
+                    <p>@point.Detail</p>
+                </div>
+            }
         </div>
     }
 </div>
 
 @code {
+    [Inject]
+    private IJSRuntime JS { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string VideoElementId { get; set; } = "player-video";
+
     [Parameter, EditorRequired]
     public string VideoUrl { get; set; } = string.Empty;
 
     [Parameter]
     public MechanicsPhase? SelectedPhase { get; set; }
+
+    [Parameter]
+    public List<MechanicsPhase> AllPhases { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<MechanicsPhase> OnJumpRequested { get; set; }
+
+    private async Task JumpToCurrentStart()
+    {
+        if (SelectedPhase is null)
+            return;
+
+        await JS.InvokeVoidAsync("diamondVideo.seekTo", VideoElementId, SelectedPhase.StartSeconds);
+    }
+
+    private async Task JumpToCurrentEnd()
+    {
+        if (SelectedPhase is null)
+            return;
+
+        await JS.InvokeVoidAsync("diamondVideo.seekTo", VideoElementId, SelectedPhase.EndSeconds);
+    }
 }

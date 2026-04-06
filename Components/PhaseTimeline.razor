@@ -5,8 +5,23 @@
     {
         <button class="phase-pill @(SelectedPhase?.Id == phase.Id ? "active" : "")"
                 @onclick="() => SelectPhase(phase)">
-            <span class="phase-pill-name">@phase.Name</span>
-            <span class="phase-pill-time">@phase.StartSeconds.ToString("0.0")s - @phase.EndSeconds.ToString("0.0")s</span>
+            <div class="phase-pill-top">
+                @if (!string.IsNullOrWhiteSpace(phase.ThumbnailUrl))
+                {
+                    <img class="phase-pill-thumb" src="@phase.ThumbnailUrl" alt="@phase.Name" />
+                }
+
+                <div class="phase-pill-copy">
+                    <span class="phase-pill-name">@phase.Name</span>
+                    <span class="phase-pill-time">
+                        @phase.StartSeconds.ToString("0.0")s - @phase.EndSeconds.ToString("0.0")s
+                    </span>
+                </div>
+            </div>
+
+            <div class="phase-pill-summary">
+                @phase.Summary
+            </div>
         </button>
     }
 </div>

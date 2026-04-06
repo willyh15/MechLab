@@ -2,6 +2,7 @@
 @using DiamondMechanics.Models
 @using DiamondMechanics.Components
 @inject DiamondMechanics.Services.PlayerLibraryService PlayerLibrary
+@inject IJSRuntime JS
 
 <PageTitle>@(_player?.Name ?? "Player Breakdown")</PageTitle>
 
@@ -25,7 +26,11 @@ else
 
         <section class="section analysis-layout">
             <div class="analysis-main">
-                <VideoAnalysisPanel VideoUrl="@_player.VideoUrl" SelectedPhase="@_selectedPhase" />
+                <VideoAnalysisPanel VideoElementId="@_videoElementId"
+                                    VideoUrl="@_player.VideoUrl"
+                                    SelectedPhase="@_selectedPhase"
+                                    AllPhases="@_player.Phases"
+                                    OnJumpRequested="OnPhaseChanged" />
             </div>
 
             <aside class="analysis-sidebar">
@@ -54,10 +59,10 @@ else
                 <div class="sidebar-card">
                     <h3>Future Expansion</h3>
                     <ul class="feature-list">
-                        <li>Upload your own swing</li>
-                        <li>Side-by-side synced comparison</li>
-                        <li>Body landmark overlays</li>
-                        <li>Auto drill recommendations</li>
+                        <li>Upload your own swing or pitching video</li>
+                        <li>Auto-synced side-by-side comparison</li>
+                        <li>Body landmark overlays and angle checks</li>
+                        <li>Training drill recommendations from identified flaws</li>
                     </ul>
                 </div>
             </aside>
@@ -71,6 +76,7 @@ else
 
     private PlayerProfile? _player;
     private MechanicsPhase? _selectedPhase;
+    private readonly string _videoElementId = "player-video";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -78,9 +84,10 @@ else
         _selectedPhase = _player?.Phases.FirstOrDefault();
     }
 
-    private Task OnPhaseChanged(MechanicsPhase phase)
+    private async Task OnPhaseChanged(MechanicsPhase phase)
     {
         _selectedPhase = phase;
-        return Task.CompletedTask;
+        await JS.InvokeVoidAsync("diamondVideo.seekTo", _videoElementId, phase.StartSeconds);
+        StateHasChanged();
     }
 }

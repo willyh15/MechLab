@@ -12,25 +12,90 @@
             <h1>Learn elite swings and pitching mechanics step by step.</h1>
             <p>
                 Study pro and college movements phase by phase with slow-motion breakdowns,
-                coaching cues, and future-ready comparison tools.
+                coaching cues, timeline checkpoints, and future-ready comparison tools.
             </p>
         </div>
     </section>
 
-    <section class="section">
+    <section class="section filters-section">
         <div class="section-header">
-            <h2>Featured Breakdowns</h2>
-            <p>Start with a pro mechanics page, then expand into user comparison later.</p>
+            <h2>Browse Breakdowns</h2>
+            <p>Filter the library by sport, category, level, or player name.</p>
+        </div>
+
+        <div class="filters-grid">
+            <div class="filter-field">
+                <label for="search">Search</label>
+                <input id="search"
+                       class="filter-input"
+                       @bind="_search"
+                       @bind:event="oninput"
+                       placeholder="Search player, school, position..." />
+            </div>
+
+            <div class="filter-field">
+                <label for="sport">Sport</label>
+                <select id="sport" class="filter-select" @bind="_sport">
+                    <option value="">All</option>
+                    @foreach (var value in _sports)
+                    {
+                        <option value="@value">@value</option>
+                    }
+                </select>
+            </div>
+
+            <div class="filter-field">
+                <label for="category">Category</label>
+                <select id="category" class="filter-select" @bind="_category">
+                    <option value="">All</option>
+                    @foreach (var value in _categories)
+                    {
+                        <option value="@value">@value</option>
+                    }
+                </select>
+            </div>
+
+            <div class="filter-field">
+                <label for="level">Level</label>
+                <select id="level" class="filter-select" @bind="_level">
+                    <option value="">All</option>
+                    @foreach (var value in _levels)
+                    {
+                        <option value="@value">@value</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="section-header section-header-inline">
+            <div>
+                <h2>Featured Breakdowns</h2>
+                <p>@FilteredPlayers.Count player@(FilteredPlayers.Count == 1 ? "" : "s") found</p>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_search) || !string.IsNullOrWhiteSpace(_sport) || !string.IsNullOrWhiteSpace(_category) || !string.IsNullOrWhiteSpace(_level))
+            {
+                <button class="clear-btn" @onclick="ClearFilters">Clear Filters</button>
+            }
         </div>
 
         @if (_players.Count == 0)
         {
             <p>Loading players...</p>
         }
+        else if (FilteredPlayers.Count == 0)
+        {
+            <div class="empty-state">
+                <h3>No players matched your filters.</h3>
+                <p>Try clearing filters or broaden the search.</p>
+            </div>
+        }
         else
         {
             <div class="player-grid">
-                @foreach (var player in _players)
+                @foreach (var player in FilteredPlayers)
                 {
                     <PlayerCard Player="player" />
                 }
@@ -41,9 +106,66 @@
 
 @code {
     private List<PlayerProfile> _players = [];
+    private string _search = string.Empty;
+    private string _sport = string.Empty;
+    private string _category = string.Empty;
+    private string _level = string.Empty;
+
+    private List<string> _sports = [];
+    private List<string> _categories = [];
+    private List<string> _levels = [];
+
+    private List<PlayerProfile> FilteredPlayers =>
+        _players
+            .Where(p => string.IsNullOrWhiteSpace(_sport) || p.Sport.Equals(_sport, StringComparison.OrdinalIgnoreCase))
+            .Where(p => string.IsNullOrWhiteSpace(_category) || p.Category.Equals(_category, StringComparison.OrdinalIgnoreCase))
+            .Where(p => string.IsNullOrWhiteSpace(_level) || p.Level.Equals(_level, StringComparison.OrdinalIgnoreCase))
+            .Where(p => string.IsNullOrWhiteSpace(_search) || MatchesSearch(p, _search))
+            .ToList();
 
     protected override async Task OnInitializedAsync()
     {
         _players = await PlayerLibrary.GetPlayersAsync();
+
+        _sports = _players
+            .Select(p => p.Sport)
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(v => v)
+            .ToList();
+
+        _categories = _players
+            .Select(p => p.Category)
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(v => v)
+            .ToList();
+
+        _levels = _players
+            .Select(p => p.Level)
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(v => v)
+            .ToList();
+    }
+
+    private static bool MatchesSearch(PlayerProfile player, string search)
+    {
+        var q = search.Trim();
+
+        return player.Name.Contains(q, StringComparison.OrdinalIgnoreCase)
+            || player.TeamOrSchool.Contains(q, StringComparison.OrdinalIgnoreCase)
+            || player.Position.Contains(q, StringComparison.OrdinalIgnoreCase)
+            || player.Category.Contains(q, StringComparison.OrdinalIgnoreCase)
+            || player.Sport.Contains(q, StringComparison.OrdinalIgnoreCase)
+            || player.Overview.Contains(q, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void ClearFilters()
+    {
+        _search = string.Empty;
+        _sport = string.Empty;
+        _category = string.Empty;
+        _level = string.Empty;
     }
 }

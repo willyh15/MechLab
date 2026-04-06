@@ -8,7 +8,7 @@
     "teamOrSchool": "MLB",
     "position": "Outfield",
     "throwsOrBats": "R/R",
-    "heroImageUrl": "https://images.unsplash.com/photo-1518604666860-9ed391f76460?auto=format&fit=crop&w=1200&q=80",
+    "heroImageUrl": "/images/players/mike-trout-hero.jpg",
     "videoUrl": "/videos/mike-trout-swing.mp4",
     "overview": "A compact, explosive swing built around balance, controlled load, efficient rotation, and strong connection through contact.",
     "phases": [
@@ -18,6 +18,7 @@
         "startSeconds": 0.0,
         "endSeconds": 1.0,
         "summary": "Athletic posture, controlled hand set, quiet head, and a balanced base before movement begins.",
+        "thumbnailUrl": "/images/frames/mike-trout/stance.jpg",
         "coachingPoints": [
           {
             "title": "Base",
@@ -39,6 +40,7 @@
         "startSeconds": 1.0,
         "endSeconds": 2.1,
         "summary": "The body gathers inward while staying centered, preparing the lower half to launch.",
+        "thumbnailUrl": "/images/frames/mike-trout/load.jpg",
         "coachingPoints": [
           {
             "title": "Rhythm",
@@ -60,6 +62,7 @@
         "startSeconds": 2.1,
         "endSeconds": 3.0,
         "summary": "The stride is controlled and directional, helping timing while preserving balance.",
+        "thumbnailUrl": "/images/frames/mike-trout/stride.jpg",
         "coachingPoints": [
           {
             "title": "Direction",
@@ -77,6 +80,7 @@
         "startSeconds": 3.0,
         "endSeconds": 3.8,
         "summary": "Lower half begins turning, torso follows, and the barrel enters the zone efficiently.",
+        "thumbnailUrl": "/images/frames/mike-trout/launch.jpg",
         "coachingPoints": [
           {
             "title": "Hip Rotation",
@@ -98,6 +102,7 @@
         "startSeconds": 3.8,
         "endSeconds": 4.2,
         "summary": "Stable head, strong front side, and efficient transfer of force into the ball.",
+        "thumbnailUrl": "/images/frames/mike-trout/contact.jpg",
         "coachingPoints": [
           {
             "title": "Head Stability",
@@ -119,6 +124,7 @@
         "startSeconds": 4.2,
         "endSeconds": 5.2,
         "summary": "The swing continues naturally through the zone before decelerating in balance.",
+        "thumbnailUrl": "/images/frames/mike-trout/finish.jpg",
         "coachingPoints": [
           {
             "title": "Extension",
@@ -127,6 +133,111 @@
           {
             "title": "Finish Balance",
             "detail": "Balanced finish suggests good sequence and body control."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "jocelyn-alo-swing",
+    "name": "Jocelyn Alo",
+    "sport": "Softball",
+    "category": "Hitting",
+    "level": "College",
+    "teamOrSchool": "Oklahoma",
+    "position": "Utility",
+    "throwsOrBats": "R/R",
+    "heroImageUrl": "/images/players/jocelyn-alo-hero.jpg",
+    "videoUrl": "/videos/jocelyn-alo-swing.mp4",
+    "overview": "A powerful softball swing that shows stable posture, explosive rotation, and an aggressive but efficient path through the ball.",
+    "phases": [
+      {
+        "id": "stance",
+        "name": "Stance + Setup",
+        "startSeconds": 0.0,
+        "endSeconds": 0.8,
+        "summary": "Balanced setup with strong posture and ready hands.",
+        "thumbnailUrl": "/images/frames/jocelyn-alo/stance.jpg",
+        "coachingPoints": [
+          {
+            "title": "Balance",
+            "detail": "The body starts centered and athletic."
+          },
+          {
+            "title": "Hand Position",
+            "detail": "Hands are loaded in a ready-to-fire slot."
+          }
+        ]
+      },
+      {
+        "id": "load",
+        "name": "Load + Gather",
+        "startSeconds": 0.8,
+        "endSeconds": 1.5,
+        "summary": "Compact gather without losing posture or connection.",
+        "thumbnailUrl": "/images/frames/jocelyn-alo/load.jpg",
+        "coachingPoints": [
+          {
+            "title": "Gather",
+            "detail": "The move stores force without adding wasted motion."
+          },
+          {
+            "title": "Timing",
+            "detail": "Load helps sync the body with pitch timing."
+          }
+        ]
+      },
+      {
+        "id": "launch",
+        "name": "Launch + Rotation",
+        "startSeconds": 1.5,
+        "endSeconds": 2.2,
+        "summary": "Strong lower-half drive and efficient rotational sequence.",
+        "thumbnailUrl": "/images/frames/jocelyn-alo/launch.jpg",
+        "coachingPoints": [
+          {
+            "title": "Sequence",
+            "detail": "The lower body starts the movement and transfers force upward."
+          },
+          {
+            "title": "Barrel Entry",
+            "detail": "The barrel enters quickly while staying connected."
+          }
+        ]
+      },
+      {
+        "id": "contact",
+        "name": "Contact",
+        "startSeconds": 2.2,
+        "endSeconds": 2.6,
+        "summary": "Firm contact position with rotational power and barrel control.",
+        "thumbnailUrl": "/images/frames/jocelyn-alo/contact.jpg",
+        "coachingPoints": [
+          {
+            "title": "Front Side",
+            "detail": "A stable front side helps convert movement into force."
+          },
+          {
+            "title": "Barrel Control",
+            "detail": "Contact happens from a repeatable, strong position."
+          }
+        ]
+      },
+      {
+        "id": "finish",
+        "name": "Finish",
+        "startSeconds": 2.6,
+        "endSeconds": 3.3,
+        "summary": "Balanced finish with full release through the ball.",
+        "thumbnailUrl": "/images/frames/jocelyn-alo/finish.jpg",
+        "coachingPoints": [
+          {
+            "title": "Extension",
+            "detail": "The swing continues through contact rather than cutting off."
+          },
+          {
+            "title": "Balance",
+            "detail": "A controlled finish reflects efficient movement."
           }
         ]
       }
