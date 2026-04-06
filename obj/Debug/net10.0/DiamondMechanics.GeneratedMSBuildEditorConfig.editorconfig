@@ -1,0 +1,47 @@
+is_global = true
+build_property.TargetFramework = net10.0
+build_property.TargetFrameworkIdentifier = .NETCoreApp
+build_property.TargetFrameworkVersion = v10.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = DiamondMechanics
+build_property.RootNamespace = DiamondMechanics
+build_property.ProjectDir = C:\Users\willh\OneDrive\Documents\GitHub\MechLab\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.RazorLangVersion = 9.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = C:\Users\willh\OneDrive\Documents\GitHub\MechLab
+build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 10.0
+build_property.EnableCodeStyleSeverity = 
+
+[C:/Users/willh/OneDrive/Documents/GitHub/MechLab/App.razor]
+build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/willh/OneDrive/Documents/GitHub/MechLab/Components/PhaseTimeline.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQaGFzZVRpbWVsaW5lLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/willh/OneDrive/Documents/GitHub/MechLab/Components/PlayerCard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQbGF5ZXJDYXJkLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/willh/OneDrive/Documents/GitHub/MechLab/Components/VideoAnalysisPanel.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xWaWRlb0FuYWx5c2lzUGFuZWwucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/willh/OneDrive/Documents/GitHub/MechLab/Pages/Home.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSG9tZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/willh/OneDrive/Documents/GitHub/MechLab/Pages/Player.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUGxheWVyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
