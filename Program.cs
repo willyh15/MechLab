@@ -6,6 +6,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddSingleton<PlayerLibraryService>();
+builder.Services.AddSingleton<SessionStorageService>();
 
 var app = builder.Build();
 
