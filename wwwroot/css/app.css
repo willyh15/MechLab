@@ -902,4 +902,41 @@ select {
     .session-grid {
         grid-template-columns: 1fr;
     }
+    
+.report-shell {
+    padding: 6px 0 0;
+}
+
+.report-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.report-panel {
+    background: rgba(17, 24, 39, 0.7);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 18px;
+    padding: 16px;
+}
+
+.report-panel h3 {
+    margin-top: 0;
+    margin-bottom: 14px;
+}
+
+.report-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+@media (max-width: 980px) {
+    .report-grid {
+        grid-template-columns: 1fr;
+    }
 }
