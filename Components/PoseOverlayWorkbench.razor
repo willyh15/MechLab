@@ -1,0 +1,419 @@
+@using DiamondMechanics.Models
+@rendermode InteractiveServer
+
+<div class="pose-lab-shell">
+    <div class="comparison-header">
+        <div>
+            <div class="phase-label">Pose Overlay Lab</div>
+            <h2>Plot body landmarks and compare structure</h2>
+            <p class="phase-summary">
+                Select a landmark, click on the frame, and build a phase-specific pose map for the pro and the athlete.
+            </p>
+        </div>
+    </div>
+
+    <div class="pose-toolbar">
+        <div class="marker-palette">
+            @foreach (var marker in _markerDefinitions)
+            {
+                <button class="marker-chip @(marker.Key == _selectedMarkerKey ? "active" : "")"
+                        @onclick="() => SelectMarker(marker.Key)">
+                    @marker.Label
+                </button>
+            }
+        </div>
+
+        <div class="pose-toolbar-actions">
+            <button class="jump-btn secondary" @onclick="ClearCurrentPhaseMarkers">Clear Current Phase</button>
+            <button class="jump-btn secondary" @onclick="CopyProToUser">Copy Pro → User</button>
+            <button class="jump-btn secondary" @onclick="CopyUserToPro">Copy User → Pro</button>
+        </div>
+    </div>
+
+    <div class="compare-grid pose-compare-grid">
+        <div class="compare-video-panel">
+            <div class="compare-label-row">
+                <span class="compare-label">Pro Overlay</span>
+                <span class="compare-meta">@PlayerName</span>
+            </div>
+
+            <div class="video-overlay-shell">
+                <video id="@ProVideoElementId" class="training-video" controls preload="metadata">
+                    <source src="@ProVideoUrl" type="video/mp4" />
+                    Your browser does not support the video tag.
+                </video>
+
+                <canvas id="@ProCanvasElementId"
+                        class="pose-canvas"
+                        width="960"
+                        height="540"
+                        @onclick="OnProCanvasClicked">
+                </canvas>
+            </div>
+        </div>
+
+        <div class="compare-video-panel">
+            <div class="compare-label-row">
+                <span class="compare-label">User Overlay</span>
+                <span class="compare-meta">@(_hasUserVideo ? "Local upload ready" : "No uploaded video yet")</span>
+            </div>
+
+            <div class="video-overlay-shell">
+                @if (_hasUserVideo)
+                {
+                    <video id="@UserVideoElementId" class="training-video" controls preload="metadata">
+                        <source src="@_userVideoUrl" type="video/mp4" />
+                        Your browser does not support the video tag.
+                    </video>
+
+                    <canvas id="@UserCanvasElementId"
+                            class="pose-canvas"
+                            width="960"
+                            height="540"
+                            @onclick="OnUserCanvasClicked">
+                    </canvas>
+                }
+                else
+                {
+                    <div class="empty-video-placeholder">
+                        Upload your own video in the comparison section above to enable user marker plotting.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="pose-phase-bar">
+        <div class="meta-chip">
+            <span>Phase</span>
+            <strong>@(SelectedPhase?.Name ?? "None")</strong>
+        </div>
+        <div class="meta-chip">
+            <span>Active Marker</span>
+            <strong>@GetSelectedMarkerLabel()</strong>
+        </div>
+        <div class="meta-chip">
+            <span>Pro Points</span>
+            <strong>@GetPlacedCount(_proMarkersByPhase)</strong>
+        </div>
+        <div class="meta-chip">
+            <span>User Points</span>
+            <strong>@GetPlacedCount(_userMarkersByPhase)</strong>
+        </div>
+    </div>
+
+    <div class="metrics-grid">
+        @foreach (var metric in GetMetrics())
+        {
+            <div class="metric-card">
+                <h4>@metric.Label</h4>
+                <div class="metric-row">
+                    <span>Pro</span>
+                    <strong>@metric.ProValue</strong>
+                </div>
+                <div class="metric-row">
+                    <span>User</span>
+                    <strong>@metric.UserValue</strong>
+                </div>
+                <div class="metric-row">
+                    <span>Delta</span>
+                    <strong>@metric.Delta</strong>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="marker-legend-grid">
+        <div class="legend-card">
+            <h3>Pro Marker State</h3>
+            <ul class="marker-state-list">
+                @foreach (var marker in GetMarkersForPhase(_proMarkersByPhase))
+                {
+                    <li>
+                        <strong>@marker.Label:</strong>
+                        @(IsPlaced(marker) ? $"{marker.X:0.0}, {marker.Y:0.0}" : "Not set")
+                    </li>
+                }
+            </ul>
+        </div>
+
+        <div class="legend-card">
+            <h3>User Marker State</h3>
+            <ul class="marker-state-list">
+                @foreach (var marker in GetMarkersForPhase(_userMarkersByPhase))
+                {
+                    <li>
+                        <strong>@marker.Label:</strong>
+                        @(IsPlaced(marker) ? $"{marker.X:0.0}, {marker.Y:0.0}" : "Not set")
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Inject]
+    private IJSRuntime JS { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string PlayerName { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string ProVideoUrl { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string ProVideoElementId { get; set; } = "pose-pro-video";
+
+    [Parameter, EditorRequired]
+    public string UserVideoElementId { get; set; } = "pose-user-video";
+
+    [Parameter, EditorRequired]
+    public string ProCanvasElementId { get; set; } = "pose-pro-canvas";
+
+    [Parameter, EditorRequired]
+    public string UserCanvasElementId { get; set; } = "pose-user-canvas";
+
+    [Parameter]
+    public string UserVideoUrl { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool HasUserVideo { get; set; }
+
+    [Parameter]
+    public MechanicsPhase? SelectedPhase { get; set; }
+
+    private readonly List<PoseMarker> _markerDefinitions = PosePreset.DefaultMarkers
+        .Select(m => new PoseMarker { Key = m.Key, Label = m.Label })
+        .ToList();
+
+    private readonly Dictionary<string, List<PoseMarker>> _proMarkersByPhase = [];
+    private readonly Dictionary<string, List<PoseMarker>> _userMarkersByPhase = [];
+
+    private string _selectedMarkerKey = "head";
+    private string _userVideoUrl = string.Empty;
+    private bool _hasUserVideo;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _userVideoUrl = UserVideoUrl;
+        _hasUserVideo = HasUserVideo;
+        await RedrawAsync();
+    }
+
+    private async Task OnProCanvasClicked(MouseEventArgs e)
+    {
+        await PlaceMarker(_proMarkersByPhase, e.OffsetX, e.OffsetY);
+        await DrawMarkersAsync(ProCanvasElementId, GetMarkersForPhase(_proMarkersByPhase));
+    }
+
+    private async Task OnUserCanvasClicked(MouseEventArgs e)
+    {
+        if (!_hasUserVideo)
+            return;
+
+        await PlaceMarker(_userMarkersByPhase, e.OffsetX, e.OffsetY);
+        await DrawMarkersAsync(UserCanvasElementId, GetMarkersForPhase(_userMarkersByPhase));
+    }
+
+    private async Task PlaceMarker(Dictionary<string, List<PoseMarker>> storage, double x, double y)
+    {
+        var markers = GetMarkersForPhase(storage);
+        var marker = markers.First(m => m.Key == _selectedMarkerKey);
+        marker.X = x;
+        marker.Y = y;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void SelectMarker(string markerKey)
+    {
+        _selectedMarkerKey = markerKey;
+    }
+
+    private async Task ClearCurrentPhaseMarkers()
+    {
+        if (SelectedPhase is null)
+            return;
+
+        _proMarkersByPhase[SelectedPhase.Id] = CreateBlankMarkerSet();
+        _userMarkersByPhase[SelectedPhase.Id] = CreateBlankMarkerSet();
+
+        await RedrawAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CopyProToUser()
+    {
+        if (SelectedPhase is null)
+            return;
+
+        var source = GetMarkersForPhase(_proMarkersByPhase)
+            .Select(CloneMarker)
+            .ToList();
+
+        _userMarkersByPhase[SelectedPhase.Id] = source;
+
+        await RedrawAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CopyUserToPro()
+    {
+        if (SelectedPhase is null)
+            return;
+
+        var source = GetMarkersForPhase(_userMarkersByPhase)
+            .Select(CloneMarker)
+            .ToList();
+
+        _proMarkersByPhase[SelectedPhase.Id] = source;
+
+        await RedrawAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private List<PoseMarker> GetMarkersForPhase(Dictionary<string, List<PoseMarker>> storage)
+    {
+        var phaseKey = SelectedPhase?.Id ?? "default";
+
+        if (!storage.TryGetValue(phaseKey, out var markers))
+        {
+            markers = CreateBlankMarkerSet();
+            storage[phaseKey] = markers;
+        }
+
+        return markers;
+    }
+
+    private List<PoseMarker> CreateBlankMarkerSet()
+    {
+        return PosePreset.DefaultMarkers
+            .Select(m => new PoseMarker
+            {
+                Key = m.Key,
+                Label = m.Label,
+                X = 0,
+                Y = 0
+            })
+            .ToList();
+    }
+
+    private static PoseMarker CloneMarker(PoseMarker marker)
+    {
+        return new PoseMarker
+        {
+            Key = marker.Key,
+            Label = marker.Label,
+            X = marker.X,
+            Y = marker.Y
+        };
+    }
+
+    private bool IsPlaced(PoseMarker marker) => marker.X > 0 && marker.Y > 0;
+
+    private string GetSelectedMarkerLabel()
+    {
+        return _markerDefinitions.FirstOrDefault(m => m.Key == _selectedMarkerKey)?.Label ?? "Unknown";
+    }
+
+    private int GetPlacedCount(Dictionary<string, List<PoseMarker>> storage)
+    {
+        return GetMarkersForPhase(storage).Count(IsPlaced);
+    }
+
+    private async Task DrawMarkersAsync(string canvasId, List<PoseMarker> markers)
+    {
+        var payload = markers
+            .Where(IsPlaced)
+            .Select(m => new
+            {
+                key = m.Key,
+                label = m.Label,
+                x = m.X,
+                y = m.Y
+            })
+            .ToList();
+
+        await JS.InvokeVoidAsync("diamondPose.drawMarkers", canvasId, payload);
+    }
+
+    private async Task RedrawAsync()
+    {
+        await DrawMarkersAsync(ProCanvasElementId, GetMarkersForPhase(_proMarkersByPhase));
+
+        if (_hasUserVideo)
+        {
+            await DrawMarkersAsync(UserCanvasElementId, GetMarkersForPhase(_userMarkersByPhase));
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("diamondPose.clearCanvas", UserCanvasElementId);
+        }
+    }
+
+    private IEnumerable<PoseMetric> GetMetrics()
+    {
+        var pro = GetMarkersForPhase(_proMarkersByPhase);
+        var user = GetMarkersForPhase(_userMarkersByPhase);
+
+        return
+        [
+            BuildMetric("Shoulder Tilt", CalculateTilt(pro, "rear_shoulder", "lead_shoulder"), CalculateTilt(user, "rear_shoulder", "lead_shoulder"), "°"),
+            BuildMetric("Hip Tilt", CalculateTilt(pro, "rear_hip", "lead_hip"), CalculateTilt(user, "rear_hip", "lead_hip"), "°"),
+            BuildMetric("Shoulder Width", CalculateDistance(pro, "rear_shoulder", "lead_shoulder"), CalculateDistance(user, "rear_shoulder", "lead_shoulder"), "px"),
+            BuildMetric("Hip Width", CalculateDistance(pro, "rear_hip", "lead_hip"), CalculateDistance(user, "rear_hip", "lead_hip"), "px"),
+            BuildMetric("Hands to Head", CalculateDistance(pro, "hands", "head"), CalculateDistance(user, "hands", "head"), "px")
+        ];
+    }
+
+    private PoseMetric BuildMetric(string label, double? proValue, double? userValue, string unit)
+    {
+        return new PoseMetric
+        {
+            Label = label,
+            ProValue = FormatMetric(proValue, unit),
+            UserValue = FormatMetric(userValue, unit),
+            Delta = FormatMetric(CalculateDelta(proValue, userValue), unit)
+        };
+    }
+
+    private static string FormatMetric(double? value, string unit)
+    {
+        return value is null ? "--" : $"{value.Value:0.0}{unit}";
+    }
+
+    private static double? CalculateDelta(double? proValue, double? userValue)
+    {
+        if (proValue is null || userValue is null)
+            return null;
+
+        return userValue.Value - proValue.Value;
+    }
+
+    private static double? CalculateDistance(List<PoseMarker> markers, string keyA, string keyB)
+    {
+        var a = markers.FirstOrDefault(m => m.Key == keyA);
+        var b = markers.FirstOrDefault(m => m.Key == keyB);
+
+        if (a is null || b is null || !IsPlacedStatic(a) || !IsPlacedStatic(b))
+            return null;
+
+        var dx = b.X - a.X;
+        var dy = b.Y - a.Y;
+        return Math.Sqrt(dx * dx + dy * dy);
+    }
+
+    private static double? CalculateTilt(List<PoseMarker> markers, string keyA, string keyB)
+    {
+        var a = markers.FirstOrDefault(m => m.Key == keyA);
+        var b = markers.FirstOrDefault(m => m.Key == keyB);
+
+        if (a is null || b is null || !IsPlacedStatic(a) || !IsPlacedStatic(b))
+            return null;
+
+        var radians = Math.Atan2(b.Y - a.Y, b.X - a.X);
+        return radians * (180 / Math.PI);
+    }
+
+    private static bool IsPlacedStatic(PoseMarker marker) => marker.X > 0 && marker.Y > 0;
+}

@@ -26,12 +26,20 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/willh/OneDrive/Documents/GitHub/MechLab/Components/ComparisonWorkbench.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xDb21wYXJpc29uV29ya2JlbmNoLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/willh/OneDrive/Documents/GitHub/MechLab/Components/PhaseTimeline.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQaGFzZVRpbWVsaW5lLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/willh/OneDrive/Documents/GitHub/MechLab/Components/PlayerCard.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQbGF5ZXJDYXJkLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/willh/OneDrive/Documents/GitHub/MechLab/Components/PoseOverlayWorkbench.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQb3NlT3ZlcmxheVdvcmtiZW5jaC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/willh/OneDrive/Documents/GitHub/MechLab/Components/VideoAnalysisPanel.razor]
