@@ -26,7 +26,7 @@ else
 
         <section class="section analysis-layout">
             <div class="analysis-main">
-                <VideoAnalysisPanel VideoElementId="@_videoElementId"
+                <VideoAnalysisPanel VideoElementId="@_proVideoElementId"
                                     VideoUrl="@_player.VideoUrl"
                                     SelectedPhase="@_selectedPhase"
                                     AllPhases="@_player.Phases"
@@ -59,13 +59,31 @@ else
                 <div class="sidebar-card">
                     <h3>Future Expansion</h3>
                     <ul class="feature-list">
-                        <li>Upload your own swing or pitching video</li>
-                        <li>Auto-synced side-by-side comparison</li>
-                        <li>Body landmark overlays and angle checks</li>
-                        <li>Training drill recommendations from identified flaws</li>
+                        <li>Auto-synced comparison scoring</li>
+                        <li>Pose estimation from uploaded video</li>
+                        <li>Bat or arm path tracing</li>
+                        <li>Drill plans generated from detected issues</li>
                     </ul>
                 </div>
             </aside>
+        </section>
+
+        <section class="section">
+            <ComparisonWorkbench ProVideoUrl="@_player.VideoUrl"
+                                 ProVideoElementId="@_comparisonProVideoElementId"
+                                 UserVideoElementId="@_comparisonUserVideoElementId"
+                                 PlayerName="@_player.Name"
+                                 SelectedPhase="@_selectedPhase"
+                                 UserOffsetSeconds="@_userOffsetSeconds"
+                                 UserOffsetSecondsChanged="OnUserOffsetChanged" />
+        </section>
+
+        <section class="section">
+            <PoseOverlayWorkbench PlayerName="@_player.Name"
+                                  HeroImageUrl="@_player.HeroImageUrl"
+                                  SelectedPhase="@_selectedPhase"
+                                  PoseSnapshots="@_poseSnapshots"
+                                  PoseSnapshotsChanged="OnPoseSnapshotsChanged" />
         </section>
     </div>
 }
@@ -76,18 +94,38 @@ else
 
     private PlayerProfile? _player;
     private MechanicsPhase? _selectedPhase;
-    private readonly string _videoElementId = "player-video";
+
+    private readonly string _proVideoElementId = "player-video";
+    private readonly string _comparisonProVideoElementId = "comparison-pro-video";
+    private readonly string _comparisonUserVideoElementId = "comparison-user-video";
+
+    private double _userOffsetSeconds = 0;
+    private Dictionary<string, PhasePoseSnapshot> _poseSnapshots = [];
 
     protected override async Task OnParametersSetAsync()
     {
         _player = await PlayerLibrary.GetPlayerBySlugAsync(Slug);
         _selectedPhase = _player?.Phases.FirstOrDefault();
+        _userOffsetSeconds = 0;
+        _poseSnapshots = [];
     }
 
     private async Task OnPhaseChanged(MechanicsPhase phase)
     {
         _selectedPhase = phase;
-        await JS.InvokeVoidAsync("diamondVideo.seekTo", _videoElementId, phase.StartSeconds);
+        await JS.InvokeVoidAsync("diamondVideo.seekTo", _proVideoElementId, phase.StartSeconds);
         StateHasChanged();
+    }
+
+    private Task OnUserOffsetChanged(double value)
+    {
+        _userOffsetSeconds = value;
+        return Task.CompletedTask;
+    }
+
+    private Task OnPoseSnapshotsChanged(Dictionary<string, PhasePoseSnapshot> snapshots)
+    {
+        _poseSnapshots = snapshots;
+        return Task.CompletedTask;
     }
 }

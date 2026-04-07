@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DiamondMechanics")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+260e469137cb42fd6769f6540eaf861ff73c03de")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0b6b2f656e54d8a3d89f87a8baef7a73f74469ed")]
 [assembly: System.Reflection.AssemblyProductAttribute("DiamondMechanics")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DiamondMechanics")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
