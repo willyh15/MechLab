@@ -85,6 +85,15 @@ else
                                   PoseSnapshots="@_poseSnapshots"
                                   PoseSnapshotsChanged="OnPoseSnapshotsChanged" />
         </section>
+
+        <section class="section">
+            <SessionManager PlayerSlug="@_player.Slug"
+                            PlayerName="@_player.Name"
+                            SelectedPhase="@_selectedPhase"
+                            UserOffsetSeconds="@_userOffsetSeconds"
+                            PoseSnapshots="@_poseSnapshots"
+                            OnSessionLoaded="OnSessionLoaded" />
+        </section>
     </div>
 }
 
@@ -127,5 +136,45 @@ else
     {
         _poseSnapshots = snapshots;
         return Task.CompletedTask;
+    }
+
+    private Task OnSessionLoaded(AnalysisSession session)
+    {
+        if (_player is null)
+            return Task.CompletedTask;
+
+        _selectedPhase = _player.Phases.FirstOrDefault(x =>
+            x.Id.Equals(session.SelectedPhaseId, StringComparison.OrdinalIgnoreCase))
+            ?? _player.Phases.FirstOrDefault();
+
+        _userOffsetSeconds = session.UserOffsetSeconds;
+        _poseSnapshots = CloneSnapshots(session.PoseSnapshots);
+
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private static Dictionary<string, PhasePoseSnapshot> CloneSnapshots(Dictionary<string, PhasePoseSnapshot> source)
+    {
+        return source.ToDictionary(
+            entry => entry.Key,
+            entry => new PhasePoseSnapshot
+            {
+                PhaseId = entry.Value.PhaseId,
+                ProPoints = ClonePoints(entry.Value.ProPoints),
+                UserPoints = ClonePoints(entry.Value.UserPoints)
+            });
+    }
+
+    private static Dictionary<string, PosePoint> ClonePoints(Dictionary<string, PosePoint> source)
+    {
+        return source.ToDictionary(
+            x => x.Key,
+            x => new PosePoint
+            {
+                Key = x.Value.Key,
+                X = x.Value.X,
+                Y = x.Value.Y
+            });
     }
 }
