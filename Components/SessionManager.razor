@@ -1,0 +1,227 @@
+@using DiamondMechanics.Models
+@inject DiamondMechanics.Services.SessionStorageService SessionStorage
+@rendermode InteractiveServer
+
+<div class="session-shell">
+    <div class="pose-header">
+        <div class="phase-label">Session Manager</div>
+        <h2>Save and reload your analysis work</h2>
+        <p class="phase-summary">
+            Save the current comparison state for this player, including phase, sync offset, and pose markers.
+        </p>
+    </div>
+
+    <div class="session-grid">
+        <div class="session-panel">
+            <div class="pose-field">
+                <label class="pose-label" for="sessionName">Session Name</label>
+                <input id="sessionName"
+                       class="filter-input"
+                       @bind="_sessionName"
+                       placeholder="Example: Trout load comparison 1" />
+            </div>
+
+            <div class="pose-actions">
+                <button class="pose-btn" @onclick="SaveCurrentSession">Save Session</button>
+                <button class="pose-btn secondary" @onclick="RefreshSessions">Refresh List</button>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_status))
+            {
+                <div class="pose-help">@_status</div>
+            }
+
+            @if (SelectedPhase is not null)
+            {
+                <div class="session-summary-box">
+                    <div><strong>Player:</strong> @PlayerName</div>
+                    <div><strong>Phase:</strong> @SelectedPhase.Name</div>
+                    <div><strong>Offset:</strong> @UserOffsetSeconds.ToString("0.0")s</div>
+                    <div><strong>Saved Pose Snapshots:</strong> @PoseSnapshots.Count</div>
+                </div>
+            }
+        </div>
+
+        <div class="session-panel">
+            <h3>Saved Sessions</h3>
+
+            @if (_sessions.Count == 0)
+            {
+                <div class="empty-state">
+                    <h3>No saved sessions yet.</h3>
+                    <p>Save one to start building your analysis history.</p>
+                </div>
+            }
+            else
+            {
+                <div class="session-list">
+                    @foreach (var session in _sessions)
+                    {
+                        <div class="session-card">
+                            <div class="session-card-top">
+                                <div>
+                                    <div class="session-name">@session.SessionName</div>
+                                    <div class="session-meta">
+                                        Updated @session.UpdatedUtc.ToLocalTime().ToString("g")
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="session-facts">
+                                <span>Phase: @session.SelectedPhaseId</span>
+                                <span>Offset: @session.UserOffsetSeconds.ToString("0.0")s</span>
+                                <span>Snapshots: @session.PoseSnapshots.Count</span>
+                            </div>
+
+                            <div class="pose-actions">
+                                <button class="pose-btn secondary" @onclick="() => LoadSession(session.Id)">Load</button>
+                                <button class="pose-btn danger" @onclick="() => DeleteSession(session.Id)">Delete</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="section export-section">
+        <div class="section-header">
+            <h2>Session Summary</h2>
+            <p>Quick-readable export block for notes, coaching, or future PDF/report output.</p>
+        </div>
+
+        <div class="summary-export">
+<pre>@BuildSummaryText()</pre>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string PlayerSlug { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string PlayerName { get; set; } = string.Empty;
+
+    [Parameter]
+    public MechanicsPhase? SelectedPhase { get; set; }
+
+    [Parameter]
+    public double UserOffsetSeconds { get; set; }
+
+    [Parameter]
+    public Dictionary<string, PhasePoseSnapshot> PoseSnapshots { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<AnalysisSession> OnSessionLoaded { get; set; }
+
+    private readonly List<AnalysisSession> _sessions = [];
+    private string _sessionName = string.Empty;
+    private string _status = string.Empty;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await RefreshSessions();
+    }
+
+    private async Task RefreshSessions()
+    {
+        _sessions.Clear();
+        _sessions.AddRange(await SessionStorage.GetSessionsForPlayerAsync(PlayerSlug));
+        StateHasChanged();
+    }
+
+    private async Task SaveCurrentSession()
+    {
+        if (string.IsNullOrWhiteSpace(PlayerSlug))
+        {
+            _status = "Player is missing.";
+            return;
+        }
+
+        if (SelectedPhase is null)
+        {
+            _status = "Select a phase before saving.";
+            return;
+        }
+
+        var session = new AnalysisSession
+        {
+            SessionName = string.IsNullOrWhiteSpace(_sessionName)
+                ? $"{PlayerName} - {SelectedPhase.Name} - {DateTime.Now:g}"
+                : _sessionName.Trim(),
+            PlayerSlug = PlayerSlug,
+            PlayerName = PlayerName,
+            SelectedPhaseId = SelectedPhase.Id,
+            UserOffsetSeconds = UserOffsetSeconds,
+            PoseSnapshots = CloneSnapshots(PoseSnapshots)
+        };
+
+        await SessionStorage.SaveSessionAsync(session);
+
+        _status = $"Saved session: {session.SessionName}";
+        _sessionName = string.Empty;
+        await RefreshSessions();
+    }
+
+    private async Task LoadSession(Guid id)
+    {
+        var session = await SessionStorage.GetSessionAsync(id);
+
+        if (session is null)
+        {
+            _status = "Could not load that session.";
+            return;
+        }
+
+        await OnSessionLoaded.InvokeAsync(session);
+        _status = $"Loaded session: {session.SessionName}";
+    }
+
+    private async Task DeleteSession(Guid id)
+    {
+        await SessionStorage.DeleteSessionAsync(id);
+        _status = "Session deleted.";
+        await RefreshSessions();
+    }
+
+    private string BuildSummaryText()
+    {
+        var phaseName = SelectedPhase?.Name ?? "None";
+        var snapshotCount = PoseSnapshots.Count;
+
+        return
+$@"Player: {PlayerName}
+Slug: {PlayerSlug}
+Selected Phase: {phaseName}
+User Offset: {UserOffsetSeconds:0.0}s
+Pose Snapshots Saved In Memory: {snapshotCount}
+
+Saved Snapshot Phase IDs:
+{string.Join(Environment.NewLine, PoseSnapshots.Keys.Select(x => $"- {x}"))}";
+    }
+
+    private static Dictionary<string, PhasePoseSnapshot> CloneSnapshots(Dictionary<string, PhasePoseSnapshot> source)
+    {
+        return source.ToDictionary(
+            entry => entry.Key,
+            entry => new PhasePoseSnapshot
+            {
+                PhaseId = entry.Value.PhaseId,
+                ProPoints = ClonePoints(entry.Value.ProPoints),
+                UserPoints = ClonePoints(entry.Value.UserPoints)
+            });
+    }
+
+    private static Dictionary<string, PosePoint> ClonePoints(Dictionary<string, PosePoint> source)
+    {
+        return source.ToDictionary(
+            x => x.Key,
+            x => new PosePoint
+            {
+                Key = x.Value.Key,
+                X = x.Value.X,
+                Y = x.Value.Y
+            });
+    }
+}
