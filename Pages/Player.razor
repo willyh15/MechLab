@@ -83,7 +83,8 @@ else
                                   HeroImageUrl="@_player.HeroImageUrl"
                                   SelectedPhase="@_selectedPhase"
                                   PoseSnapshots="@_poseSnapshots"
-                                  PoseSnapshotsChanged="OnPoseSnapshotsChanged" />
+                                  PoseSnapshotsChanged="OnPoseSnapshotsChanged"
+                                  MetricsChanged="OnPoseMetricsChanged" />
         </section>
 
         <section class="section">
@@ -93,6 +94,15 @@ else
                             UserOffsetSeconds="@_userOffsetSeconds"
                             PoseSnapshots="@_poseSnapshots"
                             OnSessionLoaded="OnSessionLoaded" />
+        </section>
+
+        <section class="section">
+            <ReportExporter PlayerSlug="@_player.Slug"
+                            PlayerName="@_player.Name"
+                            SelectedPhase="@_selectedPhase"
+                            UserOffsetSeconds="@_userOffsetSeconds"
+                            PoseSnapshots="@_poseSnapshots"
+                            Metrics="@_poseMetrics" />
         </section>
     </div>
 }
@@ -110,6 +120,7 @@ else
 
     private double _userOffsetSeconds = 0;
     private Dictionary<string, PhasePoseSnapshot> _poseSnapshots = [];
+    private List<PoseMetricResult> _poseMetrics = [];
 
     protected override async Task OnParametersSetAsync()
     {
@@ -117,6 +128,7 @@ else
         _selectedPhase = _player?.Phases.FirstOrDefault();
         _userOffsetSeconds = 0;
         _poseSnapshots = [];
+        _poseMetrics = [];
     }
 
     private async Task OnPhaseChanged(MechanicsPhase phase)
@@ -135,6 +147,12 @@ else
     private Task OnPoseSnapshotsChanged(Dictionary<string, PhasePoseSnapshot> snapshots)
     {
         _poseSnapshots = snapshots;
+        return Task.CompletedTask;
+    }
+
+    private Task OnPoseMetricsChanged(List<PoseMetricResult> metrics)
+    {
+        _poseMetrics = metrics;
         return Task.CompletedTask;
     }
 
