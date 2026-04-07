@@ -1,0 +1,308 @@
+@using System.Text
+@using System.Text.Json
+@using DiamondMechanics.Models
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+
+<div class="report-shell">
+    <div class="pose-header">
+        <div class="phase-label">Report Export</div>
+        <h2>Generate a coach-friendly export</h2>
+        <p class="phase-summary">
+            Build a downloadable report from the current player analysis state.
+        </p>
+    </div>
+
+    <div class="report-grid">
+        <div class="report-panel">
+            <div class="pose-field">
+                <label class="pose-label" for="reportTitle">Report Title</label>
+                <input id="reportTitle"
+                       class="filter-input"
+                       @bind="_reportTitle"
+                       placeholder="Example: Mike Trout Load Comparison Report" />
+            </div>
+
+            <div class="pose-actions">
+                <button class="pose-btn" @onclick="DownloadJsonReport">Download JSON</button>
+                <button class="pose-btn secondary" @onclick="DownloadHtmlReport">Download HTML</button>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_status))
+            {
+                <div class="pose-help">@_status</div>
+            }
+        </div>
+
+        <div class="report-panel">
+            <h3>Current Export Contents</h3>
+            <div class="report-facts">
+                <span>Player: @PlayerName</span>
+                <span>Phase: @(SelectedPhase?.Name ?? "None")</span>
+                <span>Offset: @UserOffsetSeconds.ToString("0.0")s</span>
+                <span>Metrics: @Metrics.Count</span>
+                <span>Saved Phase Snapshots: @PoseSnapshots.Count</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="section export-section">
+        <div class="section-header">
+            <h2>Preview</h2>
+            <p>This is the exact summary used inside the export.</p>
+        </div>
+
+        <div class="summary-export">
+<pre>@BuildReportPreview()</pre>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _reportTitle = string.Empty;
+    private string _status = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string PlayerSlug { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string PlayerName { get; set; } = string.Empty;
+
+    [Parameter]
+    public MechanicsPhase? SelectedPhase { get; set; }
+
+    [Parameter]
+    public double UserOffsetSeconds { get; set; }
+
+    [Parameter]
+    public Dictionary<string, PhasePoseSnapshot> PoseSnapshots { get; set; } = [];
+
+    [Parameter]
+    public List<PoseMetricResult> Metrics { get; set; } = [];
+
+    private AnalysisReport BuildReport()
+    {
+        return new AnalysisReport
+        {
+            ReportTitle = string.IsNullOrWhiteSpace(_reportTitle)
+                ? $"{PlayerName} Analysis Report"
+                : _reportTitle.Trim(),
+            PlayerSlug = PlayerSlug,
+            PlayerName = PlayerName,
+            SelectedPhaseId = SelectedPhase?.Id,
+            SelectedPhaseName = SelectedPhase?.Name,
+            UserOffsetSeconds = UserOffsetSeconds,
+            GeneratedUtc = DateTime.UtcNow,
+            SavedPosePhaseIds = PoseSnapshots.Keys.OrderBy(x => x).ToList(),
+            CoachSummary = BuildCoachSummary(),
+            Metrics = Metrics.Select(m => new AnalysisReportMetric
+            {
+                Title = m.Title,
+                Value = m.Value,
+                Detail = m.Detail,
+                Severity = m.Severity
+            }).ToList()
+        };
+    }
+
+    private string BuildCoachSummary()
+    {
+        var sb = new StringBuilder();
+
+        sb.AppendLine($"Player: {PlayerName}");
+        sb.AppendLine($"Selected Phase: {SelectedPhase?.Name ?? "None"}");
+        sb.AppendLine($"User Offset: {UserOffsetSeconds:0.0}s");
+        sb.AppendLine();
+
+        if (Metrics.Count > 0)
+        {
+            sb.AppendLine("Metric Summary:");
+            foreach (var metric in Metrics)
+            {
+                sb.AppendLine($"- {metric.Title}: {metric.Value} ({metric.Severity})");
+            }
+        }
+        else
+        {
+            sb.AppendLine("Metric Summary: none yet");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("Saved Pose Phase IDs:");
+        foreach (var phaseId in PoseSnapshots.Keys.OrderBy(x => x))
+        {
+            sb.AppendLine($"- {phaseId}");
+        }
+
+        return sb.ToString().TrimEnd();
+    }
+
+    private string BuildReportPreview()
+    {
+        var report = BuildReport();
+
+        var sb = new StringBuilder();
+        sb.AppendLine($"Report Title: {report.ReportTitle}");
+        sb.AppendLine($"Generated UTC: {report.GeneratedUtc:u}");
+        sb.AppendLine($"Player: {report.PlayerName}");
+        sb.AppendLine($"Player Slug: {report.PlayerSlug}");
+        sb.AppendLine($"Selected Phase: {report.SelectedPhaseName ?? "None"}");
+        sb.AppendLine($"User Offset: {report.UserOffsetSeconds:0.0}s");
+        sb.AppendLine();
+        sb.AppendLine("Metrics:");
+
+        foreach (var metric in report.Metrics)
+        {
+            sb.AppendLine($"- {metric.Title}: {metric.Value} [{metric.Severity}]");
+            sb.AppendLine($"  {metric.Detail}");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("Saved Pose Phase IDs:");
+        foreach (var id in report.SavedPosePhaseIds)
+        {
+            sb.AppendLine($"- {id}");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("Coach Summary:");
+        sb.AppendLine(report.CoachSummary);
+
+        return sb.ToString();
+    }
+
+    private async Task DownloadJsonReport()
+    {
+        var report = BuildReport();
+        var json = JsonSerializer.Serialize(report, new JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
+
+        var fileName = $"{SanitizeFileName(report.ReportTitle)}.json";
+        await JS.InvokeVoidAsync("diamondDownload.downloadTextFile", fileName, "application/json", json);
+        _status = $"Downloaded {fileName}";
+    }
+
+    private async Task DownloadHtmlReport()
+    {
+        var report = BuildReport();
+        var html = BuildHtmlReport(report);
+        var fileName = $"{SanitizeFileName(report.ReportTitle)}.html";
+
+        await JS.InvokeVoidAsync("diamondDownload.downloadTextFile", fileName, "text/html", html);
+        _status = $"Downloaded {fileName}";
+    }
+
+    private static string BuildHtmlReport(AnalysisReport report)
+    {
+        var metricsHtml = string.Join("", report.Metrics.Select(m => $@"
+            <div class=""metric"">
+                <h3>{System.Net.WebUtility.HtmlEncode(m.Title)}</h3>
+                <div class=""value {m.Severity}"">{System.Net.WebUtility.HtmlEncode(m.Value)}</div>
+                <p>{System.Net.WebUtility.HtmlEncode(m.Detail)}</p>
+            </div>"));
+
+        var phaseListHtml = string.Join("", report.SavedPosePhaseIds.Select(id =>
+            $"<li>{System.Net.WebUtility.HtmlEncode(id)}</li>"));
+
+        return $"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>{System.Net.WebUtility.HtmlEncode(report.ReportTitle)}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        body {{
+            margin: 0;
+            padding: 32px;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #0b1320;
+            color: #edf2f7;
+        }}
+        .wrap {{
+            max-width: 1100px;
+            margin: 0 auto;
+        }}
+        .card {{
+            background: #111827;
+            border: 1px solid #243247;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 18px;
+        }}
+        .muted {{
+            color: #9fb0c7;
+        }}
+        .grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+        }}
+        .metric {{
+            background: #172133;
+            border: 1px solid #243247;
+            border-radius: 14px;
+            padding: 14px;
+        }}
+        .metric h3 {{
+            margin-top: 0;
+            margin-bottom: 8px;
+        }}
+        .value {{
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }}
+        .good {{ color: #55d187; }}
+        .warn {{ color: #f6c453; }}
+        .bad {{ color: #ff6b6b; }}
+        pre {{
+            white-space: pre-wrap;
+            line-height: 1.6;
+            margin: 0;
+        }}
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="card">
+            <h1>{System.Net.WebUtility.HtmlEncode(report.ReportTitle)}</h1>
+            <p class="muted">Generated {report.GeneratedUtc:u}</p>
+            <p><strong>Player:</strong> {System.Net.WebUtility.HtmlEncode(report.PlayerName)}</p>
+            <p><strong>Selected Phase:</strong> {System.Net.WebUtility.HtmlEncode(report.SelectedPhaseName ?? "None")}</p>
+            <p><strong>User Offset:</strong> {report.UserOffsetSeconds:0.0}s</p>
+        </div>
+
+        <div class="card">
+            <h2>Metrics</h2>
+            <div class="grid">
+                {metricsHtml}
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Saved Pose Phase IDs</h2>
+            <ul>
+                {phaseListHtml}
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>Coach Summary</h2>
+            <pre>{System.Net.WebUtility.HtmlEncode(report.CoachSummary)}</pre>
+        </div>
+    </div>
+</body>
+</html>
+""";
+    }
+
+    private static string SanitizeFileName(string value)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var cleaned = new string(value.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray());
+        return cleaned.Replace(' ', '_');
+    }
+}
