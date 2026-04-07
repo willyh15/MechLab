@@ -148,6 +148,9 @@
     [Parameter]
     public EventCallback<Dictionary<string, PhasePoseSnapshot>> PoseSnapshotsChanged { get; set; }
 
+    [Parameter]
+    public EventCallback<List<PoseMetricResult>> MetricsChanged { get; set; }
+
     private readonly string[] MarkerKeys =
     [
         "Head",
@@ -163,13 +166,15 @@
     private Dictionary<string, PosePoint> ProMarkers { get; set; } = [];
     private Dictionary<string, PosePoint> UserMarkers { get; set; } = [];
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         if (SelectedPhase is not null && PoseSnapshots.TryGetValue(SelectedPhase.Id, out var snapshot))
         {
             ProMarkers = Clone(snapshot.ProPoints);
             UserMarkers = Clone(snapshot.UserPoints);
         }
+
+        await PublishMetrics();
     }
 
     private string GetBackgroundImage()
@@ -193,12 +198,13 @@
         };
 
         await PoseSnapshotsChanged.InvokeAsync(PoseSnapshots);
+        await PublishMetrics();
     }
 
-    private Task LoadCurrentPhase()
+    private async Task LoadCurrentPhase()
     {
         if (SelectedPhase is null)
-            return Task.CompletedTask;
+            return;
 
         if (PoseSnapshots.TryGetValue(SelectedPhase.Id, out var snapshot))
         {
@@ -211,19 +217,19 @@
             UserMarkers = [];
         }
 
-        return Task.CompletedTask;
+        await PublishMetrics();
     }
 
-    private Task PlaceProMarker(MouseEventArgs e)
+    private async Task PlaceProMarker(MouseEventArgs e)
     {
         SetMarker(ProMarkers, e);
-        return Task.CompletedTask;
+        await PublishMetrics();
     }
 
-    private Task PlaceUserMarker(MouseEventArgs e)
+    private async Task PlaceUserMarker(MouseEventArgs e)
     {
         SetMarker(UserMarkers, e);
-        return Task.CompletedTask;
+        await PublishMetrics();
     }
 
     private void SetMarker(Dictionary<string, PosePoint> target, MouseEventArgs e)
@@ -242,12 +248,23 @@
         };
     }
 
-    private void ClearProMarkers() => ProMarkers = [];
-    private void ClearUserMarkers() => UserMarkers = [];
-    private void ClearAllMarkers()
+    private async Task ClearProMarkers()
+    {
+        ProMarkers = [];
+        await PublishMetrics();
+    }
+
+    private async Task ClearUserMarkers()
+    {
+        UserMarkers = [];
+        await PublishMetrics();
+    }
+
+    private async Task ClearAllMarkers()
     {
         ProMarkers = [];
         UserMarkers = [];
+        await PublishMetrics();
     }
 
     private static Dictionary<string, PosePoint> Clone(Dictionary<string, PosePoint> source) =>
@@ -279,6 +296,11 @@
                 yield return (a.X, a.Y, b.X, b.Y);
             }
         }
+    }
+
+    private async Task PublishMetrics()
+    {
+        await MetricsChanged.InvokeAsync(BuildMetrics());
     }
 
     private List<PoseMetricResult> BuildMetrics()
@@ -323,7 +345,7 @@
         {
             Title = "Torso Stack",
             Value = $"{diff:0.0}",
-            Detail = $"Distance delta between head and rear hip. Smaller usually means closer body stack match.",
+            Detail = "Distance delta between head and rear hip. Smaller usually means closer body stack match.",
             Severity = SeverityForDifference(diff, 4, 8)
         };
     }
@@ -343,7 +365,7 @@
         {
             Title = "Hand Load Distance",
             Value = $"{diff:0.0}",
-            Detail = $"Distance delta from hands to rear shoulder. Useful for comparing hand slot and load position.",
+            Detail = "Distance delta from hands to rear shoulder. Useful for comparing hand slot and load position.",
             Severity = SeverityForDifference(diff, 4, 8)
         };
     }
@@ -361,7 +383,7 @@
         {
             Title = title,
             Value = $"{diff:0.0}°",
-            Detail = $"Difference between pro and user marker angle.",
+            Detail = "Difference between pro and user marker angle.",
             Severity = SeverityForDifference(diff, 6, 12)
         };
     }
