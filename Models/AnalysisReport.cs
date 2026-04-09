@@ -12,4 +12,9 @@ public class AnalysisReport
     public List<AnalysisReportMetric> Metrics { get; set; } = [];
     public List<string> SavedPosePhaseIds { get; set; } = [];
     public string CoachSummary { get; set; } = string.Empty;
+
+    public string? ProBoardImageDataUrl { get; set; }
+    public string? UserBoardImageDataUrl { get; set; }
+
+    public CoachRecommendation Recommendation { get; set; } = new();
 }
