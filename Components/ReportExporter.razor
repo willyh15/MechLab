@@ -1,8 +1,9 @@
 @using System.Text
 @using System.Text.Json
 @using DiamondMechanics.Models
-@rendermode InteractiveServer
+@inject DiamondMechanics.Services.ReportStorageService ReportStorage
 @inject IJSRuntime JS
+@rendermode InteractiveServer
 
 <div class="report-shell">
     <div class="pose-header">
@@ -26,6 +27,8 @@
             <div class="pose-actions">
                 <button class="pose-btn" @onclick="DownloadJsonReport">Download JSON</button>
                 <button class="pose-btn secondary" @onclick="DownloadHtmlReport">Download HTML</button>
+                <button class="pose-btn secondary" @onclick="CaptureBoardsOnly">Capture Board Images</button>
+                <button class="pose-btn secondary" @onclick="SaveReportRecord">Save Report History</button>
             </div>
 
             @if (!string.IsNullOrWhiteSpace(_status))
@@ -46,6 +49,27 @@
         </div>
     </div>
 
+    @if (!string.IsNullOrWhiteSpace(_lastProBoardImageDataUrl) || !string.IsNullOrWhiteSpace(_lastUserBoardImageDataUrl))
+    {
+        <div class="report-image-preview-grid">
+            @if (!string.IsNullOrWhiteSpace(_lastProBoardImageDataUrl))
+            {
+                <div class="report-image-card">
+                    <h3>Pro Board Preview</h3>
+                    <img src="@_lastProBoardImageDataUrl" alt="Pro board preview" />
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_lastUserBoardImageDataUrl))
+            {
+                <div class="report-image-card">
+                    <h3>User Board Preview</h3>
+                    <img src="@_lastUserBoardImageDataUrl" alt="User board preview" />
+                </div>
+            }
+        </div>
+    }
+
     <div class="section export-section">
         <div class="section-header">
             <h2>Preview</h2>
@@ -61,12 +85,17 @@
 @code {
     private string _reportTitle = string.Empty;
     private string _status = string.Empty;
+    private string? _lastProBoardImageDataUrl;
+    private string? _lastUserBoardImageDataUrl;
 
     [Parameter, EditorRequired]
     public string PlayerSlug { get; set; } = string.Empty;
 
     [Parameter, EditorRequired]
     public string PlayerName { get; set; } = string.Empty;
+
+    [Parameter]
+    public string HeroImageUrl { get; set; } = string.Empty;
 
     [Parameter]
     public MechanicsPhase? SelectedPhase { get; set; }
@@ -79,6 +108,12 @@
 
     [Parameter]
     public List<PoseMetricResult> Metrics { get; set; } = [];
+
+    [Parameter]
+    public PhasePoseSnapshot? CurrentBoardSnapshot { get; set; }
+
+    [Parameter]
+    public EventCallback ReportSaved { get; set; }
 
     private AnalysisReport BuildReport()
     {
@@ -95,6 +130,8 @@
             GeneratedUtc = DateTime.UtcNow,
             SavedPosePhaseIds = PoseSnapshots.Keys.OrderBy(x => x).ToList(),
             CoachSummary = BuildCoachSummary(),
+            ProBoardImageDataUrl = _lastProBoardImageDataUrl,
+            UserBoardImageDataUrl = _lastUserBoardImageDataUrl,
             Metrics = Metrics.Select(m => new AnalysisReportMetric
             {
                 Title = m.Title,
@@ -165,14 +202,26 @@
         }
 
         sb.AppendLine();
+        sb.AppendLine($"Pro Board Captured: {!string.IsNullOrWhiteSpace(report.ProBoardImageDataUrl)}");
+        sb.AppendLine($"User Board Captured: {!string.IsNullOrWhiteSpace(report.UserBoardImageDataUrl)}");
+
+        sb.AppendLine();
         sb.AppendLine("Coach Summary:");
         sb.AppendLine(report.CoachSummary);
 
         return sb.ToString();
     }
 
+    private async Task CaptureBoardsOnly()
+    {
+        await CaptureBoardImages();
+        _status = "Captured current board images.";
+    }
+
     private async Task DownloadJsonReport()
     {
+        await CaptureBoardImages();
+
         var report = BuildReport();
         var json = JsonSerializer.Serialize(report, new JsonSerializerOptions
         {
@@ -186,6 +235,8 @@
 
     private async Task DownloadHtmlReport()
     {
+        await CaptureBoardImages();
+
         var report = BuildReport();
         var html = BuildHtmlReport(report);
         var fileName = $"{SanitizeFileName(report.ReportTitle)}.html";
@@ -193,6 +244,63 @@
         await JS.InvokeVoidAsync("diamondDownload.downloadTextFile", fileName, "text/html", html);
         _status = $"Downloaded {fileName}";
     }
+
+    private async Task SaveReportRecord()
+    {
+        await CaptureBoardImages();
+
+        var report = BuildReport();
+        var baseFileName = SanitizeFileName(report.ReportTitle);
+
+        var record = new SavedReportRecord
+        {
+            ReportTitle = report.ReportTitle,
+            PlayerSlug = PlayerSlug,
+            PlayerName = PlayerName,
+            CreatedUtc = DateTime.UtcNow,
+            JsonFileName = $"{baseFileName}.json",
+            HtmlFileName = $"{baseFileName}.html",
+            Report = report
+        };
+
+        await ReportStorage.SaveReportAsync(record);
+        _status = $"Saved report history: {record.ReportTitle}";
+        await ReportSaved.InvokeAsync();
+    }
+
+    private async Task CaptureBoardImages()
+    {
+        var backgroundImage = string.IsNullOrWhiteSpace(SelectedPhase?.ThumbnailUrl)
+            ? HeroImageUrl
+            : SelectedPhase!.ThumbnailUrl;
+
+        var proPoints = CurrentBoardSnapshot?.ProPoints?.Values
+            .Select(ToJsPoint)
+            .ToList() ?? [];
+
+        var userPoints = CurrentBoardSnapshot?.UserPoints?.Values
+            .Select(ToJsPoint)
+            .ToList() ?? [];
+
+        _lastProBoardImageDataUrl = await JS.InvokeAsync<string>(
+            "diamondPoseCapture.buildBoardDataUrl",
+            backgroundImage,
+            proPoints,
+            "pro");
+
+        _lastUserBoardImageDataUrl = await JS.InvokeAsync<string>(
+            "diamondPoseCapture.buildBoardDataUrl",
+            backgroundImage,
+            userPoints,
+            "user");
+    }
+
+    private static object ToJsPoint(PosePoint point) => new
+    {
+        key = point.Key,
+        x = point.X,
+        y = point.Y
+    };
 
     private static string BuildHtmlReport(AnalysisReport report)
     {
@@ -205,6 +313,14 @@
 
         var phaseListHtml = string.Join("", report.SavedPosePhaseIds.Select(id =>
             $"<li>{System.Net.WebUtility.HtmlEncode(id)}</li>"));
+
+        var proBoardHtml = string.IsNullOrWhiteSpace(report.ProBoardImageDataUrl)
+            ? "<p class=\"muted\">No pro board image captured.</p>"
+            : $"<img class=\"board-image\" src=\"{report.ProBoardImageDataUrl}\" alt=\"Pro board image\" />";
+
+        var userBoardHtml = string.IsNullOrWhiteSpace(report.UserBoardImageDataUrl)
+            ? "<p class=\"muted\">No user board image captured.</p>"
+            : $"<img class=\"board-image\" src=\"{report.UserBoardImageDataUrl}\" alt=\"User board image\" />";
 
         return $"""
 <!DOCTYPE html>
@@ -258,10 +374,26 @@
         .good {{ color: #55d187; }}
         .warn {{ color: #f6c453; }}
         .bad {{ color: #ff6b6b; }}
+        .board-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }}
+        .board-image {{
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid #243247;
+            display: block;
+        }}
         pre {{
             white-space: pre-wrap;
             line-height: 1.6;
             margin: 0;
+        }}
+        @media (max-width: 800px) {{
+            .board-grid {{
+                grid-template-columns: 1fr;
+            }}
         }}
     </style>
 </head>
@@ -273,6 +405,20 @@
             <p><strong>Player:</strong> {System.Net.WebUtility.HtmlEncode(report.PlayerName)}</p>
             <p><strong>Selected Phase:</strong> {System.Net.WebUtility.HtmlEncode(report.SelectedPhaseName ?? "None")}</p>
             <p><strong>User Offset:</strong> {report.UserOffsetSeconds:0.0}s</p>
+        </div>
+
+        <div class="card">
+            <h2>Board Snapshots</h2>
+            <div class="board-grid">
+                <div>
+                    <h3>Pro Board</h3>
+                    {proBoardHtml}
+                </div>
+                <div>
+                    <h3>User Board</h3>
+                    {userBoardHtml}
+                </div>
+            </div>
         </div>
 
         <div class="card">
