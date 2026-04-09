@@ -89,6 +89,11 @@ else
         </section>
 
         <section class="section">
+            <CoachNotesEditor Recommendation="@_recommendation"
+                              RecommendationChanged="OnRecommendationChanged" />
+        </section>
+
+        <section class="section">
             <SessionManager PlayerSlug="@_player.Slug"
                             PlayerName="@_player.Name"
                             SelectedPhase="@_selectedPhase"
@@ -106,6 +111,7 @@ else
                             PoseSnapshots="@_poseSnapshots"
                             Metrics="@_poseMetrics"
                             CurrentBoardSnapshot="@_currentBoardSnapshot"
+                            Recommendation="@_recommendation"
                             ReportSaved="OnReportSaved" />
         </section>
 
@@ -131,6 +137,7 @@ else
     private Dictionary<string, PhasePoseSnapshot> _poseSnapshots = [];
     private List<PoseMetricResult> _poseMetrics = [];
     private PhasePoseSnapshot? _currentBoardSnapshot;
+    private CoachRecommendation _recommendation = new();
     private ReportHistory? _reportHistory;
 
     protected override async Task OnParametersSetAsync()
@@ -141,6 +148,7 @@ else
         _poseSnapshots = [];
         _poseMetrics = [];
         _currentBoardSnapshot = null;
+        _recommendation = new CoachRecommendation();
     }
 
     private async Task OnPhaseChanged(MechanicsPhase phase)
@@ -175,6 +183,18 @@ else
             PhaseId = snapshot.PhaseId,
             ProPoints = ClonePoints(snapshot.ProPoints),
             UserPoints = ClonePoints(snapshot.UserPoints)
+        };
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnRecommendationChanged(CoachRecommendation recommendation)
+    {
+        _recommendation = new CoachRecommendation
+        {
+            MainFlaw = recommendation.MainFlaw,
+            CoachNotes = recommendation.CoachNotes,
+            TopDrills = recommendation.TopDrills.ToList()
         };
 
         return Task.CompletedTask;
