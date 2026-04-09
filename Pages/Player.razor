@@ -84,7 +84,8 @@ else
                                   SelectedPhase="@_selectedPhase"
                                   PoseSnapshots="@_poseSnapshots"
                                   PoseSnapshotsChanged="OnPoseSnapshotsChanged"
-                                  MetricsChanged="OnPoseMetricsChanged" />
+                                  MetricsChanged="OnPoseMetricsChanged"
+                                  CurrentBoardChanged="OnCurrentBoardChanged" />
         </section>
 
         <section class="section">
@@ -99,10 +100,18 @@ else
         <section class="section">
             <ReportExporter PlayerSlug="@_player.Slug"
                             PlayerName="@_player.Name"
+                            HeroImageUrl="@_player.HeroImageUrl"
                             SelectedPhase="@_selectedPhase"
                             UserOffsetSeconds="@_userOffsetSeconds"
                             PoseSnapshots="@_poseSnapshots"
-                            Metrics="@_poseMetrics" />
+                            Metrics="@_poseMetrics"
+                            CurrentBoardSnapshot="@_currentBoardSnapshot"
+                            ReportSaved="OnReportSaved" />
+        </section>
+
+        <section class="section">
+            <ReportHistory @ref="_reportHistory"
+                           PlayerSlug="@_player.Slug" />
         </section>
     </div>
 }
@@ -121,6 +130,8 @@ else
     private double _userOffsetSeconds = 0;
     private Dictionary<string, PhasePoseSnapshot> _poseSnapshots = [];
     private List<PoseMetricResult> _poseMetrics = [];
+    private PhasePoseSnapshot? _currentBoardSnapshot;
+    private ReportHistory? _reportHistory;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -129,6 +140,7 @@ else
         _userOffsetSeconds = 0;
         _poseSnapshots = [];
         _poseMetrics = [];
+        _currentBoardSnapshot = null;
     }
 
     private async Task OnPhaseChanged(MechanicsPhase phase)
@@ -156,6 +168,26 @@ else
         return Task.CompletedTask;
     }
 
+    private Task OnCurrentBoardChanged(PhasePoseSnapshot snapshot)
+    {
+        _currentBoardSnapshot = new PhasePoseSnapshot
+        {
+            PhaseId = snapshot.PhaseId,
+            ProPoints = ClonePoints(snapshot.ProPoints),
+            UserPoints = ClonePoints(snapshot.UserPoints)
+        };
+
+        return Task.CompletedTask;
+    }
+
+    private async Task OnReportSaved()
+    {
+        if (_reportHistory is not null)
+        {
+            await _reportHistory.RefreshReports();
+        }
+    }
+
     private Task OnSessionLoaded(AnalysisSession session)
     {
         if (_player is null)
@@ -167,6 +199,16 @@ else
 
         _userOffsetSeconds = session.UserOffsetSeconds;
         _poseSnapshots = CloneSnapshots(session.PoseSnapshots);
+
+        if (_selectedPhase is not null && _poseSnapshots.TryGetValue(_selectedPhase.Id, out var snapshot))
+        {
+            _currentBoardSnapshot = new PhasePoseSnapshot
+            {
+                PhaseId = snapshot.PhaseId,
+                ProPoints = ClonePoints(snapshot.ProPoints),
+                UserPoints = ClonePoints(snapshot.UserPoints)
+            };
+        }
 
         StateHasChanged();
         return Task.CompletedTask;
