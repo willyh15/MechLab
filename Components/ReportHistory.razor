@@ -48,6 +48,7 @@
                         <span>Phase: @(report.Report.SelectedPhaseName ?? "None")</span>
                         <span>Offset: @report.Report.UserOffsetSeconds.ToString("0.0")s</span>
                         <span>Metrics: @report.Report.Metrics.Count</span>
+                        <span>Main Flaw: @(string.IsNullOrWhiteSpace(report.Report.Recommendation.MainFlaw) ? "None" : report.Report.Recommendation.MainFlaw)</span>
                     </div>
 
                     <div class="pose-actions">
@@ -142,6 +143,11 @@
 
         var phaseListHtml = string.Join("", report.SavedPosePhaseIds.Select(id =>
             $"<li>{System.Net.WebUtility.HtmlEncode(id)}</li>"));
+
+        var drillsHtml = report.Recommendation.TopDrills.Count == 0
+            ? "<li>None</li>"
+            : string.Join("", report.Recommendation.TopDrills.Select(d =>
+                $"<li>{System.Net.WebUtility.HtmlEncode(d)}</li>"));
 
         var proBoardHtml = string.IsNullOrWhiteSpace(report.ProBoardImageDataUrl)
             ? "<p class=\"muted\">No pro board image captured.</p>"
@@ -255,6 +261,17 @@
             <div class="grid">
                 {metricsHtml}
             </div>
+        </div>
+
+        <div class="card">
+            <h2>Main Flaw</h2>
+            <p>{System.Net.WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(report.Recommendation.MainFlaw) ? "None" : report.Recommendation.MainFlaw)}</p>
+            <h2>Coach Notes</h2>
+            <pre>{System.Net.WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(report.Recommendation.CoachNotes) ? "None" : report.Recommendation.CoachNotes)}</pre>
+            <h2>Top Drills</h2>
+            <ul>
+                {drillsHtml}
+            </ul>
         </div>
 
         <div class="card">
