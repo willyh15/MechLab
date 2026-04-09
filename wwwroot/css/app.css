@@ -939,4 +939,53 @@ select {
     .report-grid {
         grid-template-columns: 1fr;
     }
+.report-history-shell {
+    padding: 6px 0 0;
+}
+
+.report-history-status {
+    margin-top: 12px;
+    margin-bottom: 12px;
+}
+
+.report-history-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.report-history-card {
+    background: rgba(17, 24, 39, 0.7);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 18px;
+    padding: 16px;
+}
+
+.report-history-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: start;
+    margin-bottom: 10px;
+}
+
+.report-history-title {
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.report-history-meta {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 4px;
+}
+
+.report-history-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+}
 }
