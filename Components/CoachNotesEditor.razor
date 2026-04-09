@@ -1,0 +1,157 @@
+@using DiamondMechanics.Models
+@rendermode InteractiveServer
+
+<div class="coach-notes-shell">
+    <div class="pose-header">
+        <div class="phase-label">Coach Notes</div>
+        <h2>Write recommendations and training focus</h2>
+        <p class="phase-summary">
+            Add a main flaw, coaching notes, and top drills. These get embedded into saved reports.
+        </p>
+    </div>
+
+    <div class="coach-grid">
+        <div class="coach-panel">
+            <div class="pose-field">
+                <label class="pose-label" for="mainFlaw">Main Flaw</label>
+                <input id="mainFlaw"
+                       class="filter-input"
+                       @bind="_model.MainFlaw"
+                       @bind:event="oninput"
+                       placeholder="Example: hands drift too far from rear shoulder during load" />
+            </div>
+
+            <div class="pose-field">
+                <label class="pose-label" for="coachNotes">Coach Notes</label>
+                <textarea id="coachNotes"
+                          class="coach-textarea"
+                          @bind="_model.CoachNotes"
+                          @bind:event="oninput"
+                          placeholder="Write technical notes, movement cues, or what stands out from the comparison..."></textarea>
+            </div>
+        </div>
+
+        <div class="coach-panel">
+            <div class="pose-field">
+                <label class="pose-label" for="drill1">Top Drill 1</label>
+                <input id="drill1"
+                       class="filter-input"
+                       @bind="_drill1"
+                       @bind:event="oninput"
+                       placeholder="Example: separation walk-through drill" />
+            </div>
+
+            <div class="pose-field">
+                <label class="pose-label" for="drill2">Top Drill 2</label>
+                <input id="drill2"
+                       class="filter-input"
+                       @bind="_drill2"
+                       @bind:event="oninput"
+                       placeholder="Example: rear shoulder hand-slot drill" />
+            </div>
+
+            <div class="pose-field">
+                <label class="pose-label" for="drill3">Top Drill 3</label>
+                <input id="drill3"
+                       class="filter-input"
+                       @bind="_drill3"
+                       @bind:event="oninput"
+                       placeholder="Example: controlled load pause drill" />
+            </div>
+
+            <div class="pose-actions">
+                <button class="pose-btn" @onclick="SaveRecommendation">Apply Notes</button>
+                <button class="pose-btn secondary" @onclick="ClearRecommendation">Clear Notes</button>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_status))
+            {
+                <div class="pose-help">@_status</div>
+            }
+        </div>
+    </div>
+
+    <div class="coach-preview-card">
+        <h3>Current Recommendation Snapshot</h3>
+        <div class="coach-preview-block">
+            <p><strong>Main Flaw:</strong> @(string.IsNullOrWhiteSpace(_model.MainFlaw) ? "None" : _model.MainFlaw)</p>
+            <p><strong>Coach Notes:</strong> @(string.IsNullOrWhiteSpace(_model.CoachNotes) ? "None" : _model.CoachNotes)</p>
+            <div>
+                <strong>Top Drills:</strong>
+                <ul class="checkpoint-list">
+                    @foreach (var drill in GetDrills())
+                    {
+                        <li>@drill</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CoachRecommendation _model = new();
+    private string _drill1 = string.Empty;
+    private string _drill2 = string.Empty;
+    private string _drill3 = string.Empty;
+    private string _status = string.Empty;
+
+    [Parameter]
+    public CoachRecommendation Recommendation { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<CoachRecommendation> RecommendationChanged { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _model = new CoachRecommendation
+        {
+            MainFlaw = Recommendation.MainFlaw,
+            CoachNotes = Recommendation.CoachNotes,
+            TopDrills = Recommendation.TopDrills?.ToList() ?? []
+        };
+
+        _drill1 = _model.TopDrills.ElementAtOrDefault(0) ?? string.Empty;
+        _drill2 = _model.TopDrills.ElementAtOrDefault(1) ?? string.Empty;
+        _drill3 = _model.TopDrills.ElementAtOrDefault(2) ?? string.Empty;
+    }
+
+    private async Task SaveRecommendation()
+    {
+        _model.TopDrills = GetDrills().ToList();
+        await RecommendationChanged.InvokeAsync(Clone(_model));
+        _status = "Coach notes applied.";
+    }
+
+    private async Task ClearRecommendation()
+    {
+        _model = new CoachRecommendation();
+        _drill1 = string.Empty;
+        _drill2 = string.Empty;
+        _drill3 = string.Empty;
+
+        await RecommendationChanged.InvokeAsync(Clone(_model));
+        _status = "Coach notes cleared.";
+    }
+
+    private IEnumerable<string> GetDrills()
+    {
+        foreach (var drill in new[] { _drill1, _drill2, _drill3 })
+        {
+            if (!string.IsNullOrWhiteSpace(drill))
+            {
+                yield return drill.Trim();
+            }
+        }
+    }
+
+    private static CoachRecommendation Clone(CoachRecommendation model)
+    {
+        return new CoachRecommendation
+        {
+            MainFlaw = model.MainFlaw,
+            CoachNotes = model.CoachNotes,
+            TopDrills = model.TopDrills.ToList()
+        };
+    }
+}
