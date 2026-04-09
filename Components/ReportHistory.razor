@@ -1,0 +1,276 @@
+@using System.Text.Json
+@using DiamondMechanics.Models
+@inject DiamondMechanics.Services.ReportStorageService ReportStorage
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<div class="report-history-shell">
+    <div class="pose-header">
+        <div class="phase-label">Report History</div>
+        <h2>Saved reports for this player</h2>
+        <p class="phase-summary">
+            Reopen, re-download, or delete previous generated reports.
+        </p>
+    </div>
+
+    <div class="pose-actions">
+        <button class="pose-btn secondary" @onclick="RefreshReports">Refresh Reports</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_status))
+    {
+        <div class="pose-help report-history-status">@_status</div>
+    }
+
+    @if (_reports.Count == 0)
+    {
+        <div class="empty-state">
+            <h3>No saved reports yet.</h3>
+            <p>Save one from the report exporter above.</p>
+        </div>
+    }
+    else
+    {
+        <div class="report-history-list">
+            @foreach (var report in _reports)
+            {
+                <div class="report-history-card">
+                    <div class="report-history-top">
+                        <div>
+                            <div class="report-history-title">@report.ReportTitle</div>
+                            <div class="report-history-meta">
+                                Created @report.CreatedUtc.ToLocalTime().ToString("g")
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="report-history-facts">
+                        <span>Phase: @(report.Report.SelectedPhaseName ?? "None")</span>
+                        <span>Offset: @report.Report.UserOffsetSeconds.ToString("0.0")s</span>
+                        <span>Metrics: @report.Report.Metrics.Count</span>
+                    </div>
+
+                    <div class="pose-actions">
+                        <button class="pose-btn secondary" @onclick="() => DownloadSavedJson(report.Id)">Download JSON</button>
+                        <button class="pose-btn secondary" @onclick="() => DownloadSavedHtml(report.Id)">Download HTML</button>
+                        <button class="pose-btn danger" @onclick="() => DeleteSavedReport(report.Id)">Delete</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string PlayerSlug { get; set; } = string.Empty;
+
+    private List<SavedReportRecord> _reports = [];
+    private string _status = string.Empty;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await RefreshReports();
+    }
+
+    public async Task RefreshReports()
+    {
+        _reports = await ReportStorage.GetReportsForPlayerAsync(PlayerSlug);
+        StateHasChanged();
+    }
+
+    private async Task DownloadSavedJson(Guid id)
+    {
+        var saved = await ReportStorage.GetReportAsync(id);
+
+        if (saved is null)
+        {
+            _status = "Could not load saved report.";
+            return;
+        }
+
+        var json = JsonSerializer.Serialize(saved.Report, new JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
+
+        await JS.InvokeVoidAsync(
+            "diamondDownload.downloadTextFile",
+            saved.JsonFileName,
+            "application/json",
+            json);
+
+        _status = $"Downloaded {saved.JsonFileName}";
+    }
+
+    private async Task DownloadSavedHtml(Guid id)
+    {
+        var saved = await ReportStorage.GetReportAsync(id);
+
+        if (saved is null)
+        {
+            _status = "Could not load saved report.";
+            return;
+        }
+
+        var html = BuildHtmlReport(saved.Report);
+
+        await JS.InvokeVoidAsync(
+            "diamondDownload.downloadTextFile",
+            saved.HtmlFileName,
+            "text/html",
+            html);
+
+        _status = $"Downloaded {saved.HtmlFileName}";
+    }
+
+    private async Task DeleteSavedReport(Guid id)
+    {
+        await ReportStorage.DeleteReportAsync(id);
+        _status = "Deleted saved report.";
+        await RefreshReports();
+    }
+
+    private static string BuildHtmlReport(AnalysisReport report)
+    {
+        var metricsHtml = string.Join("", report.Metrics.Select(m => $@"
+            <div class=""metric"">
+                <h3>{System.Net.WebUtility.HtmlEncode(m.Title)}</h3>
+                <div class=""value {m.Severity}"">{System.Net.WebUtility.HtmlEncode(m.Value)}</div>
+                <p>{System.Net.WebUtility.HtmlEncode(m.Detail)}</p>
+            </div>"));
+
+        var phaseListHtml = string.Join("", report.SavedPosePhaseIds.Select(id =>
+            $"<li>{System.Net.WebUtility.HtmlEncode(id)}</li>"));
+
+        var proBoardHtml = string.IsNullOrWhiteSpace(report.ProBoardImageDataUrl)
+            ? "<p class=\"muted\">No pro board image captured.</p>"
+            : $"<img class=\"board-image\" src=\"{report.ProBoardImageDataUrl}\" alt=\"Pro board image\" />";
+
+        var userBoardHtml = string.IsNullOrWhiteSpace(report.UserBoardImageDataUrl)
+            ? "<p class=\"muted\">No user board image captured.</p>"
+            : $"<img class=\"board-image\" src=\"{report.UserBoardImageDataUrl}\" alt=\"User board image\" />";
+
+        return $"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>{System.Net.WebUtility.HtmlEncode(report.ReportTitle)}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        body {{
+            margin: 0;
+            padding: 32px;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #0b1320;
+            color: #edf2f7;
+        }}
+        .wrap {{
+            max-width: 1100px;
+            margin: 0 auto;
+        }}
+        .card {{
+            background: #111827;
+            border: 1px solid #243247;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 18px;
+        }}
+        .muted {{
+            color: #9fb0c7;
+        }}
+        .grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+        }}
+        .metric {{
+            background: #172133;
+            border: 1px solid #243247;
+            border-radius: 14px;
+            padding: 14px;
+        }}
+        .metric h3 {{
+            margin-top: 0;
+            margin-bottom: 8px;
+        }}
+        .value {{
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }}
+        .good {{ color: #55d187; }}
+        .warn {{ color: #f6c453; }}
+        .bad {{ color: #ff6b6b; }}
+        .board-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }}
+        .board-image {{
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid #243247;
+            display: block;
+        }}
+        pre {{
+            white-space: pre-wrap;
+            line-height: 1.6;
+            margin: 0;
+        }}
+        @media (max-width: 800px) {{
+            .board-grid {{
+                grid-template-columns: 1fr;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="card">
+            <h1>{System.Net.WebUtility.HtmlEncode(report.ReportTitle)}</h1>
+            <p class="muted">Generated {report.GeneratedUtc:u}</p>
+            <p><strong>Player:</strong> {System.Net.WebUtility.HtmlEncode(report.PlayerName)}</p>
+            <p><strong>Selected Phase:</strong> {System.Net.WebUtility.HtmlEncode(report.SelectedPhaseName ?? "None")}</p>
+            <p><strong>User Offset:</strong> {report.UserOffsetSeconds:0.0}s</p>
+        </div>
+
+        <div class="card">
+            <h2>Board Snapshots</h2>
+            <div class="board-grid">
+                <div>
+                    <h3>Pro Board</h3>
+                    {proBoardHtml}
+                </div>
+                <div>
+                    <h3>User Board</h3>
+                    {userBoardHtml}
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Metrics</h2>
+            <div class="grid">
+                {metricsHtml}
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Saved Pose Phase IDs</h2>
+            <ul>
+                {phaseListHtml}
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>Coach Summary</h2>
+            <pre>{System.Net.WebUtility.HtmlEncode(report.CoachSummary)}</pre>
+        </div>
+    </div>
+</body>
+</html>
+""";
+    }
+}
